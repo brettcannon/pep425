@@ -1,0 +1,22 @@
+[build-system]
+requires = ["flit"]
+build-backend = "flit.buildapi"
+
+[tool.flit.metadata]
+module = "pep425"
+author = "Brett Cannon"
+author-email = "brett@python.org"
+home-page = "https://github.com/brettcannon/pep425"
+description-file = "README.md"
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Topic :: Software Development :: Build Tools",
+    "Development Status :: 2 - Pre-Alpha",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7"
+]
+requires-python = ">=3.7"
+
+[tool.flit.metadata.requires-extra]
+test = ["pytest"]
