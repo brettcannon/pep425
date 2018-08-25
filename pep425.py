@@ -37,7 +37,7 @@ def sys_tag_set():
     # XXX platform: str = distutils.util.get_platform()
 
 
-class TagSet:
+class BaseTagSet:
     """A tag set representing an interpreter.
 
     A tag set is made up of:
@@ -48,25 +48,79 @@ class TagSet:
 
     """
 
-    def __init__(
-        self,
-        distribution: str,
-        no_dot_version: str,
-        abi: str = "none",
-        platform: str = "any",
-    ) -> None:
-        self._distro = distribution
-        self._version = no_dot_version
-        self.py_version = (
-            _DISTRO_SHORT_NAMES.get(distribution, distribution) + no_dot_version
-        )
-        self.abi = abi
-        self.platform = platform
+    def __init__(self, py_version, abi, platform):
+        self.py_version = py_version.lower()
+        self.abi = abi.lower()
+        self.platform = platform.lower()
 
     def __str__(self) -> str:
         return "-".join([self.py_version, self.abi, self.platform])
 
-    def py_versions(self) -> List[str]:
+
+class TagSet(BaseTagSet):
+    """A tag set which understands what other tags it supports."""
+
+    def __init__(
+        self, distribution: str, version: str, abi: str = "none", platform: str = "any"
+    ) -> None:
+        self._distro = distribution.lower()
+        self._version = version.lower()
+        py_version = _DISTRO_SHORT_NAMES.get(self._distro, self._distro) + self._version
+        super().__init__(py_version, abi, platform)
+
+    def supported_py_versions(self) -> List[str]:
+        """Calculate the supported Python versions."""
+        return [self.py_version]
+
+    def supported_abis(self) -> List[str]:
+        """Calculate the supported ABIs.
+
+        If not set as the  ABI, 'none' is used as the most generic value.
+
+        """
+        return _options_list(self.abi, "none")
+
+    def supported_platforms(self) -> List[str]:
+        """Calculate the supported platforms.
+
+        If not set as the platform, 'any' is used as the most generic value.
+
+        """
+        return _options_list(self.platform, "any")
+
+
+class CPythonTagSet(TagSet):
+
+    """A tag set for CPython."""
+
+    def __init__(self, version, abi="none", platform="any") -> None:
+        """Create a tag set for CPython.
+
+        The `version` argument is expected to represent the major and minor Python
+        version supported by the interpreter with no separator between the
+        two numbers. The major version is assumed to be the first digit in the
+        string.
+
+        """
+        super().__init__(_DISTRO_SHORT_NAMES["cpython"], version, abi, platform)
+
+    def supported_py_versions(self) -> List[str]:
+        """Calculate the supported Python versions.
+
+        The supported Python versions go through the specified distribution and
+        'py' (as the generic value), first choosing the major/minor version and
+        then major-only. E.g. for CPython 3.7, the result is
+        ["cpy37", "cp3", "py37", "py3"].
+
+        """
+        # According to PEP 425, Python version support is context-sensitive
+        # based on whether any ABI or platform has been specified (i.e.
+        # ``*-none-any`` versus anything else). Based on a query against PyPI
+        # download data on 2018-08-24, there are exactly four projects where
+        # the context-sensitivity would come into play and they all provide
+        # multiple wheels to cover appropriate versions of Python. Hence it is
+        # not considered important enough to complicate the support here for
+        # context-sensitive Python version possibilities.
         major = self._version[0]
         minor = self._version[1:]
         distros = _options_list(self._distro, "py")
@@ -77,27 +131,7 @@ class TagSet:
             combinations.append(f"{distro}{major}")
         return combinations
 
-    def abis(self) -> List[str]:
-        return _options_list(self.abi, "none")
-
-    def platforms(self) -> List[str]:
-        return _options_list(self.platform, "any")
-
-
-class CPythonTagSet(TagSet):
-
-    """A tag set for CPython."""
-
-    def __init__(self, version, abi, platform) -> None:
-        # XXX Provide appropriate defaults.
-        super().__init__(_DISTRO_SHORT_NAMES["cpython"], version, abi, platform)
-
-    def py_versions(self) -> List[str]:
-        """Go from major + version to major, CPython to 'py'."""
-        # XXX Make sure to start from the proper position if a less specific
-        #     version is provided.
-
-    def abis(self) -> List[str]:
+    def supported_abis(self) -> List[str]:
         """Go from ABI to 'abi3' to 'XXX'."""
         # XXX Make sure to start from proper position when given a less specific
         #     version.
@@ -105,41 +139,16 @@ class CPythonTagSet(TagSet):
     # XXX manylinux?
 
 
-class PyPyTagSet(TagSet):
+def combinations(tag_set: TagSet) -> Generator[BaseTagSet, None, None]:
+    """Create an iterable of BaseTagSet instances.
 
-    """A tag set for PyPy3."""
-
-    def __init__(self, version, abi, platform) -> None:
-        # XXX Provide appropriate defaults.
-        super().__init__(_DISTRO_SHORT_NAMES["pypy"], version, abi, platform)
-
-
-@enum.unique
-class TagType(enum.Enum):
-    """Possible tags.
-
-    Each value corresponds to an attribute on TagSet.
-
+    The Python version mutates the fastest, followed by ABI, and then finally
+    platform.
     """
-
-    py_version = "py_version"
-    abi = "abi"
-    platform = "platform"
-
-
-def combinations(
-    tag_set, bottom_pri, middle_pri, top_pri
-) -> Generator[TagSet, None, None]:
-    """Create an iterable of tag sets.
-
-    The parameters bottom_pri, middle_pri, and top_pri represent the bottom,
-    middle, and top priority out of the three tags contained in a tag set.
-    The bottom priority will mutate the most while the top priority will mutate
-    the least.
-
-    """
-    # XXX Check what pip's defaults are to choose a default.
-    # XXX Yield tag sets
+    for platform in tag_set.supported_platforms():
+        for abi in tag_set.supported_abis():
+            for py_version in tag_set.supported_py_versions():
+                yield BaseTagSet(py_version, abi, platform)
 
 
 class MultiValueTagSet:
@@ -166,7 +175,7 @@ class MultiValueTagSet:
         py_versions, abis, platforms = tags.split("-")
         return cls(py_versions.split("."), abis.split("."), platforms.split("."))
 
-    def __contains__(self, tag_set: TagSet) -> bool:
+    def __contains__(self, tag_set: BaseTagSet) -> bool:
         """Check if tag_set is compatible."""
         return (
             tag_set.py_version in self.py_versions
@@ -177,4 +186,5 @@ class MultiValueTagSet:
 
 # XXX Parse wheel file names (somehow; not sure if that should be in here or another library)
 # XXX for tag_set in combinations():
-# XXX   if tag-set in wheel_tag_set: return wheel
+# XXX   for wheel_tag_set in wheel_tag_sets:
+# XXX     if tag_set in wheel_tag_set: return wheel
