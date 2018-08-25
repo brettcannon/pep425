@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import distutils.util
 import enum
 import sys
@@ -158,9 +159,9 @@ class MultiValueTagSet:
     def __init__(
         self, py_versions: Iterable[str], abis: Iterable[str], platforms: Iterable[str]
     ) -> None:
-        self.py_versions = list(py_versions)
-        self.abis = list(abis)
-        self.platforms = list(platforms)
+        self.py_versions = list(map(str.lower, py_versions))
+        self.abis = list(map(str.lower, abis))
+        self.platforms = list(map(str.lower, platforms))
 
     @classmethod
     def parse(cls, tags: str) -> MultiValueTagSet:
