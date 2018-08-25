@@ -1,3 +1,4 @@
+"""Provide support for PEP 425 compatibility tags."""
 from __future__ import annotations
 
 import distutils.util
@@ -8,7 +9,6 @@ from typing import Generator, Iterable, List
 
 
 _DISTRO_SHORT_NAMES = {
-    "python": "py",  # Generic/agnostic.
     "cpython": "cp",
     "pypy": "pp",
     "ironpython": "ip",
@@ -28,16 +28,7 @@ def _options_list(specific: str, generic: str) -> List[str]:
         return [generic]
 
 
-def sys_tag_set():
-    """Return the tag set for the running interpreter."""
-    # XXX Detect CPython
-    # XXX Detect PyPy
-    # XXX distribution: str = sys.implementation.name,
-    # XXX version: str = sysconfig.get_config_var("py_version_nodot"),
-    # XXX abi: str = sysconfig.get_config_var("SOABI"),
-    # XXX platform: str = distutils.util.get_platform()
-
-
+# XXX Merge into TagSet?
 class BaseTagSet:
     """A tag set representing an interpreter.
 
@@ -133,11 +124,30 @@ class CPythonTagSet(TagSet):
         return combinations
 
     def supported_abis(self) -> List[str]:
-        """Go from ABI to 'abi3' to 'XXX'."""
-        # XXX Make sure to start from proper position when given a less specific
-        #     version.
+        """Go from the specified ABI to 'abi3' to 'none'."""
+        abis = ["none", "abi3", self.abi]
+        rindex = len(abis) - abis.index(self.abi) - 1
+        abis.reverse()
+        return abis[rindex:]
 
-    # XXX manylinux?
+    def supported_platforms(self) -> List[str]:
+        """Return the supported platforms.
+
+        Support for manylinux is included as appropriate.
+
+        """
+        # PEP 513
+        # XXX manylinux1? linux_x86_64, linux_i686 to manylinux1_{x86_64,i686}
+
+
+def sys_tag_set():
+    """Return the tag set for the running interpreter."""
+    # XXX Detect CPython
+    # XXX Detect PyPy
+    # XXX distribution: str = sys.implementation.name,
+    # XXX version: str = sysconfig.get_config_var("py_version_nodot"),
+    # XXX abi: str = sysconfig.get_config_var("SOABI"),
+    # XXX platform: str = distutils.util.get_platform()
 
 
 def combinations(tag_set: TagSet) -> Generator[BaseTagSet, None, None]:
@@ -189,3 +199,8 @@ class MultiValueTagSet:
 # XXX for tag_set in combinations():
 # XXX   for wheel_tag_set in wheel_tag_sets:
 # XXX     if tag_set in wheel_tag_set: return wheel
+
+
+# XXX https://pypi.org/project/mysql-connector-python/#files
+# XXX https://pypi.org/project/pip/#files
+# XXX https://pypi.org/project/numpy/#files
