@@ -1,7 +1,7 @@
 """Provide support for PEP 425 compatibility tags triples."""
 from __future__ import annotations
 
-from typing import Container, Sequence
+from typing import Any, Container, Sequence
 
 
 INTERPRETER_SHORT_NAMES = {
@@ -31,7 +31,7 @@ class Tag:
     def __str__(self) -> str:
         return f"{self.interpreter}-{self.abi}-{self.platform}"
 
-    def __eq__(self, other: Tag) -> bool:
+    def __eq__(self, other: Any) -> bool:
         return (
             self.interpreter == other.interpreter
             and self.abi == other.abi
@@ -39,7 +39,7 @@ class Tag:
         )
 
 
-def sys_tags() -> Sequence[TagTriple]:
+def sys_tags() -> Sequence[Tag]:
     """Return the sequence of tag triples for the running interpreter.
 
     The order of the sequence corresponds to priority order for the interpreter,
