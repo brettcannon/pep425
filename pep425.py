@@ -18,21 +18,15 @@ INTERPRETER_SHORT_NAMES = {
 # A dataclass would be better, but Python 2.7. :(
 class Tag:
 
-    """Represent the interpreter/ABI/platform tag triple as specified by PEP 425."""
+    """Representation of the interpreter/ABI/platform tag triple as specified by PEP 425."""
 
     def __init__(self, interpreter: str, abi: str, platform: str) -> None:
         """Initialize the instance attributes.
 
-        If 'interpreter' represents an interpreter with a short name, then its
-        short name will be saved.
+        All values are lowercased.
 
         """
-        interpreter = interpreter.lower()
-        for long_name, short_name in INTERPRETER_SHORT_NAMES.items():
-            if interpreter.startswith(long_name):
-                interpreter = interpreter.replace(long_name, short_name, 1)
-                break
-        self._tags = interpreter, abi, platform
+        self._tags = interpreter.lower(), abi.lower(), platform.lower()
 
     def __eq__(self, other: Any) -> bool:
         return self._tags == other._tags
