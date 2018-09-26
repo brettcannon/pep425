@@ -31,37 +31,23 @@ class Tag:
     def __eq__(self, other: Any) -> bool:
         return self._tags == other._tags
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self._tags)
 
     def __str__(self) -> str:
         return "-".join(self._tags)
 
     @property
-    def interpreter(self):
+    def interpreter(self) -> str:
         return self._tags[0]
 
     @property
-    def abi(self):
+    def abi(self) -> str:
         return self._tags[1]
 
     @property
-    def platform(self):
+    def platform(self) -> str:
         return self._tags[2]
-
-
-def sys_tags() -> Sequence[Tag]:
-    """Return the sequence of tag triples for the running interpreter.
-
-    The order of the sequence corresponds to priority order for the interpreter,
-    from most to least important.
-
-    """
-    # XXX Detect CPython for special handling.
-    # XXX distribution: str = sys.implementation.name,
-    # XXX version: str = sysconfig.get_config_var("py_version_nodot"),
-    # XXX abi: str = sysconfig.get_config_var("SOABI"),
-    # XXX platform: str = distutils.util.get_platform()
 
 
 def parse_tag(tag: str) -> Container[Tag]:
@@ -83,8 +69,26 @@ def parse_tag(tag: str) -> Container[Tag]:
 def parse_wheel_tag(path: os.PathLike) -> Container[Tag]:
     """Parse the path/filename of a wheel file for its tag triple(s)."""
     name = pathlib.PurePath(path).stem
-    parts = name.rsplit("-", 3)
-    return parse_tag(*parts[1:])
+    parts = 3
+    index = len(name)
+    while parts:
+        index = name.rindex("-", 0, index)
+        parts -= 1
+    return parse_tag(name[index + 1 :])
+
+
+def sys_tags() -> Sequence[Tag]:
+    """Return the sequence of tag triples for the running interpreter.
+
+    The order of the sequence corresponds to priority order for the interpreter,
+    from most to least important.
+
+    """
+    # XXX Detect CPython for special handling.
+    # XXX distribution: str = sys.implementation.name,
+    # XXX version: str = sysconfig.get_config_var("py_version_nodot"),
+    # XXX abi: str = sysconfig.get_config_var("SOABI"),
+    # XXX platform: str = distutils.util.get_platform()
 
 
 # XXX https://pypi.org/project/mysql-connector-python/#files
