@@ -67,7 +67,7 @@ def parse_tag(tag: str) -> Container[Tag]:
 
 
 def parse_wheel_tag(path: os.PathLike) -> Container[Tag]:
-    """Parse the path/filename of a wheel file for its tag triple(s)."""
+    """Parse the path of a wheel file for its tag triple(s)."""
     name = pathlib.PurePath(path).stem
     parts = 3
     index = len(name)
