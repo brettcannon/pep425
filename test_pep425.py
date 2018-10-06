@@ -1,8 +1,28 @@
 import pathlib
+import sys
 
 import pytest
 
 import pep425
+
+
+def cpython_only(func):
+    """Skip 'func' if not running under CPython."""
+    return pytest.mark.skipif(
+        sys.implementation.name != "cpython", reason="requires CPython"
+    )(func)
+
+
+def mac_only(func):
+    """Skip 'func' if not running on macOS."""
+    return pytest.mark.skipif(sys.platform != "darwin", reason="requires macOS")(func)
+
+
+def arch_64_only(func):
+    """Skip 'func' if not running on a 64-bit interpreter."""
+    return pytest.mark.skipif(
+        sys.maxsize <= 2 ** 32, reason="requires a 64-bit interpreter"
+    )(func)
 
 
 @pytest.fixture
@@ -80,3 +100,29 @@ def test_parse_wheel_tag_multi_interpreter(example_tag):
     expected = {example_tag, pep425.Tag("py2", "none", "any")}
     given = pep425.parse_wheel_tag("pip-18.0-py2.py3-none-any.whl")
     assert given == expected
+
+
+@cpython_only
+def test__interpreter_name_cpython():
+    assert pep425._interpreter_name() == "cp"
+
+
+@pytest.mark.parametrize(
+    "arch, is_32bit, expected",
+    [
+        ("i386", True, "i386"),
+        ("ppc", True, "ppc"),
+        ("x86_64", False, "x86_64"),
+        ("x86_64", True, "i386"),
+        ("ppc64", False, "ppc64"),
+        ("ppc64", True, "ppc"),
+    ],
+)
+def test_macOS_architectures(arch, is_32bit, expected):
+    assert pep425._mac_arch(arch, is_32bit=is_32bit) == expected
+
+
+# XXX macOS binary formats
+# XXX macOS version detection
+# XXX macOS CPU arch detection
+# XXX _mac_platforms()
