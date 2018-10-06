@@ -1,4 +1,5 @@
 import pathlib
+import platform
 import sys
 
 import pytest
@@ -145,7 +146,36 @@ def test_macOS_binary_formats(version, arch, expected):
     assert pep425._mac_binary_formats(version, arch) == expected
 
 
-# XXX macOS binary formats
-# XXX macOS version detection
-# XXX macOS CPU arch detection
-# XXX _mac_platforms()
+def test_mac_platforms():
+    platforms = pep425._mac_platforms((10, 5), "x86_64")
+    assert platforms == [
+        "macosx_10_5_x86_64",
+        "macosx_10_5_intel",
+        "macosx_10_5_fat64",
+        "macosx_10_5_fat32",
+        "macosx_10_5_universal",
+        "macosx_10_4_x86_64",
+        "macosx_10_4_intel",
+        "macosx_10_4_fat64",
+        "macosx_10_4_fat32",
+        "macosx_10_4_universal",
+    ]
+
+    assert len(pep425._mac_platforms((10, 17), "x86_64")) == 14 * 5
+
+    assert not pep425._mac_platforms((10, 0), "x86_64")
+
+
+@mac_only
+def test_macOS_version_detection():
+    version = platform.mac_ver()[0].split(".")
+    expected = f"macosx_{version[0]}_{version[1]}"
+    platforms = pep425._mac_platforms(arch="x86_64")
+    assert platforms[0].startswith(expected)
+
+
+@mac_only
+@arch_64_only
+def test_macOS_arch_detection():
+    arch = platform.mac_ver()[2]
+    assert pep425._mac_platforms((10, 17))[0].endswith(arch)
