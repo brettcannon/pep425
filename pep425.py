@@ -86,18 +86,18 @@ def parse_wheel_tag(path: os.PathLike) -> Container[Tag]:
 
 def _cpython_tags(py_version, platforms) -> Iterable[Tag]:
     interpreter_version = sysconfig.get_config_var("py_version_nodot")
-    interpreter = f"cp{interpreter_version}"  # XXX Python 2.7
+    interpreter = f"cp{interpreter_version}"
     # XXX ABIs: 37m, abi3, none
     # XXX independent tags w/o ABIs
-    # XXX independent tags w/o platforms
+    # XXX independent tags w/o ABIS or platforms
     raise NotImplementedError
 
 
 def _pypy_tags(py_version, platforms) -> Iterable[Tag]:
     interpreter_version = (
         f"{py_version[0]}{sys.pypy_version_info.major}{sys.pypy_version_info.minor}"
-    )  # XXX Python 2.7
-    interpreter = f"pp{interpreter_version}"  # XXX Python 2.7
+    )
+    interpreter = f"pp{interpreter_version}"
     # XXX
     raise NotImplementedError
 
@@ -106,13 +106,13 @@ def _generic_tags(py_version, interpreter_name, platforms) -> Iterable[Tag]:
     interpreter_version = sysconfig.get_config_var("py_version_nodot")
     if not interpreter_version:
         interpreter_version = "".join(py_version)
-    interpreter = f"{interpreter_name}{interpreter_version}"  # XXX Python 2.7
+    interpreter = f"{interpreter_name}{interpreter_version}"
     # XXX ABI
     # XXX
     raise NotImplementedError
 
 
-def _py_version_range(py_version, end=0) -> Iterable[str]:
+def _py_version_range(py_version) -> Iterable[str]:
     """Yield Python versions in descending order.
 
     After the latest version, the major-only version will be yielded, and then
@@ -121,7 +121,7 @@ def _py_version_range(py_version, end=0) -> Iterable[str]:
     """
     yield f"py{py_version[0]}{py_version[1]}"
     yield f"py{py_version[0]}"
-    for minor in range(py_version - 1, end - 1, -1):
+    for minor in range(py_version - 1, -1, -1):
         yield f"py{py_version[0]}{minor}"
 
 
@@ -157,7 +157,7 @@ def _mac_binary_formats(version, cpu_arch: str) -> Sequence[str]:
         else:
             return []
     elif cpu_arch == "ppc64":
-        # XXX Need to care about 32-bit PPC older than 10.4?
+        # TODO: Need to care about 32-bit PPC for ppc64 through 10.2?
         if version > (10, 5) or version < (10, 4):
             return []
         else:
@@ -191,7 +191,7 @@ def _mac_platforms(version=None, arch=None) -> Sequence[str]:
 
 
 def _windows_platforms() -> Sequence[str]:
-    # XXX Is this necessary?
+    # XXX Is this function even necessary?
     raise NotImplementedError
 
 
@@ -209,9 +209,8 @@ def _generic_platforms() -> Sequence[str]:
 
 def _interpreter_name() -> str:
     """Return the name of the running interpreter."""
-    name = (
-        sys.implementation.name
-    )  # XXX: Darn you, Python 2.7! platform.python_implementation()?
+    # XXX: Darn you, Python 2.7! platform.python_implementation()?
+    name = sys.implementation.name
     return INTERPRETER_SHORT_NAMES.get(name) or name
 
 
@@ -241,10 +240,9 @@ def sys_tags() -> Iterable[Tag]:
         return _generic_tags(py_version, interpreter_name, platforms)
 
 
-# XXX Implement _mac_platforms() (and test as we go)
+# XXX Implement _cpython_tags()
 # XXX Test _generic_platforms()
 # XXX Implement _generic_tags()
-# XXX Implement _cpython_tags()
 # XXX test sys_tags()
 
 
