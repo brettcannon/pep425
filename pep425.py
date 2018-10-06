@@ -157,13 +157,14 @@ def _mac_binary_formats(version, cpu_arch: str) -> Sequence[str]:
         else:
             return []
     elif cpu_arch == "ppc64":
+        # XXX Need to care about 32-bit PPC older than 10.4?
         if version > (10, 5) or version < (10, 4):
             return []
         else:
-            formats.extend("fat64")
+            formats.append("fat64")
     elif cpu_arch == "ppc":
         if version <= (10, 6):
-            formats.extend(["fat", "fat32"])
+            formats.extend(["fat32", "fat"])
         else:
             return []
 

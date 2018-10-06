@@ -122,6 +122,29 @@ def test_macOS_architectures(arch, is_32bit, expected):
     assert pep425._mac_arch(arch, is_32bit=is_32bit) == expected
 
 
+@pytest.mark.parametrize(
+    "version,arch,expected",
+    [
+        ((10, 17), "x86_64", ["x86_64", "intel", "fat64", "fat32", "universal"]),
+        ((10, 4), "x86_64", ["x86_64", "intel", "fat64", "fat32", "universal"]),
+        ((10, 3), "x86_64", []),
+        ((10, 17), "i386", ["i386", "intel", "fat32", "fat", "universal"]),
+        ((10, 4), "i386", ["i386", "intel", "fat32", "fat", "universal"]),
+        ((10, 3), "i386", []),
+        ((10, 17), "ppc64", []),
+        ((10, 6), "ppc64", []),
+        ((10, 5), "ppc64", ["ppc64", "fat64", "universal"]),
+        ((10, 3), "ppc64", []),
+        ((10, 17), "ppc", []),
+        ((10, 7), "ppc", []),
+        ((10, 6), "ppc", ["ppc", "fat32", "fat", "universal"]),
+        ((10, 0), "ppc", ["ppc", "fat32", "fat", "universal"]),
+    ],
+)
+def test_macOS_binary_formats(version, arch, expected):
+    assert pep425._mac_binary_formats(version, arch) == expected
+
+
 # XXX macOS binary formats
 # XXX macOS version detection
 # XXX macOS CPU arch detection
