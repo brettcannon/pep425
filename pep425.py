@@ -44,6 +44,9 @@ class Tag:
     def __str__(self) -> str:
         return "-".join(self._tags)
 
+    def __repr__(self) -> str:
+        return f"{self}@{id(self)}"
+
     @property
     def interpreter(self) -> str:
         return self._tags[0]
@@ -84,13 +87,29 @@ def parse_wheel_tag(path: os.PathLike) -> Container[Tag]:
     return parse_tag(name[index + 1 :])
 
 
-def _cpython_tags(py_version, platforms) -> Iterable[Tag]:
-    interpreter_version = sysconfig.get_config_var("py_version_nodot")
-    interpreter = f"cp{interpreter_version}"
-    # XXX ABIs: 37m, abi3, none
-    # XXX independent tags w/o ABIs
-    # XXX independent tags w/o ABIS or platforms
-    raise NotImplementedError
+def _cpython_abi() -> str:
+    """Calcuate the ABI for this CPython interpreter."""
+    soabi = sysconfig.get_config_var("SOABI")
+    if soabi:
+        _, options, _ = soabi.split("-")
+        return f"cp{options}"
+    else:
+        # XXX Python 2.7.
+        raise NotImplementedError
+
+
+def _cpython_tags(py_version, abi, platforms) -> Iterable[Tag]:
+    platforms = list(platforms)  # Iterating multiple times, so make concrete.
+    # TODO: Is using py_version_nodot for interpreter version critical?
+    interpreter = f"cp{py_version[0]}{py_version[1]}"
+    yield from (Tag(interpreter, abi, platform) for platform in platforms)
+    yield from (Tag(interpreter, "abi3", platform) for platform in platforms)
+    yield from (Tag(interpreter, "none", platform) for platform in platforms)
+    # PEP 384 was first implemented in Python 3.2.
+    for minor_version in range(py_version[1] - 1, 1, -1):
+        for platform in platforms:
+            yield Tag(f"cp{py_version[0]}{minor_version}", "abi3", platform)
+    yield from _independent_tags(interpreter, py_version, platforms)
 
 
 def _pypy_tags(py_version, platforms) -> Iterable[Tag]:
@@ -112,7 +131,7 @@ def _generic_tags(py_version, interpreter_name, platforms) -> Iterable[Tag]:
     raise NotImplementedError
 
 
-def _py_version_range(py_version) -> Iterable[str]:
+def _py_interpreter_range(py_version) -> Iterable[str]:
     """Yield Python versions in descending order.
 
     After the latest version, the major-only version will be yielded, and then
@@ -121,15 +140,18 @@ def _py_version_range(py_version) -> Iterable[str]:
     """
     yield f"py{py_version[0]}{py_version[1]}"
     yield f"py{py_version[0]}"
-    for minor in range(py_version - 1, -1, -1):
+    for minor in range(py_version[1] - 1, -1, -1):
         yield f"py{py_version[0]}{minor}"
 
 
-def _independent_tags(py_version, platforms=["any"]) -> Iterable[Tag]:
-    """Return a sequence of tags that are interpreter- and ABI-independent."""
-    for version in _py_version_range(py_version):
+def _independent_tags(interpreter, py_version, platforms) -> Iterable[Tag]:
+    """Return the sequence of tags that are consistent across implementations."""
+    for version in _py_interpreter_range(py_version):
         for platform in platforms:
             yield Tag(version, "none", platform)
+    yield Tag(interpreter, "none", "any")
+    for version in _py_interpreter_range(py_version):
+        yield Tag(version, "none", "any")
 
 
 def _mac_arch(arch, *, is_32bit=_32_BIT_INTERPRETER):
@@ -233,14 +255,14 @@ def sys_tags() -> Iterable[Tag]:
         platforms = _generic_platforms()
 
     if interpreter_name == "cp":
-        return _cpython_tags(py_version, platforms)
+        abi = _cpython_abi()
+        return _cpython_tags(py_version, abi, platforms)
     elif interpreter_name == "pp":
         return _pypy_tags(py_version, platforms)
     else:
         return _generic_tags(py_version, interpreter_name, platforms)
 
 
-# XXX Implement _cpython_tags()
 # XXX Test _generic_platforms()
 # XXX Implement _generic_tags()
 # XXX test sys_tags()

@@ -1,6 +1,7 @@
 import pathlib
 import platform
 import sys
+import sysconfig
 
 import pytest
 
@@ -49,6 +50,10 @@ def test_Tag_hashing(example_tag):
 
 def test_Tag_str(example_tag):
     assert str(example_tag) == "py3-none-any"
+
+
+def test_Tag_repr(example_tag):
+    assert repr(example_tag) == f"py3-none-any@{id(example_tag)}"
 
 
 def test_Tag_attribute_access(example_tag):
@@ -179,3 +184,42 @@ def test_macOS_version_detection():
 def test_macOS_arch_detection():
     arch = platform.mac_ver()[2]
     assert pep425._mac_platforms((10, 17))[0].endswith(arch)
+
+
+@cpython_only
+@pytest.mark.skipif(
+    not sysconfig.get_config_var("SOABI"), reason="requires SOABI configuration info"
+)
+def test_cpython_abi():
+    _, soabi, _ = sysconfig.get_config_var("SOABI").split("-")
+    assert f"cp{soabi}" == pep425._cpython_abi()
+
+
+def test_cpython_tags():
+    tags = list(pep425._cpython_tags((3, 3), "cp33m", ["plat1", "plat2"]))
+    assert tags == [
+        pep425.Tag("cp33", "cp33m", "plat1"),
+        pep425.Tag("cp33", "cp33m", "plat2"),
+        pep425.Tag("cp33", "abi3", "plat1"),
+        pep425.Tag("cp33", "abi3", "plat2"),
+        pep425.Tag("cp33", "none", "plat1"),
+        pep425.Tag("cp33", "none", "plat2"),
+        pep425.Tag("cp32", "abi3", "plat1"),
+        pep425.Tag("cp32", "abi3", "plat2"),
+        pep425.Tag("py33", "none", "plat1"),
+        pep425.Tag("py33", "none", "plat2"),
+        pep425.Tag("py3", "none", "plat1"),
+        pep425.Tag("py3", "none", "plat2"),
+        pep425.Tag("py32", "none", "plat1"),
+        pep425.Tag("py32", "none", "plat2"),
+        pep425.Tag("py31", "none", "plat1"),
+        pep425.Tag("py31", "none", "plat2"),
+        pep425.Tag("py30", "none", "plat1"),
+        pep425.Tag("py30", "none", "plat2"),
+        pep425.Tag("cp33", "none", "any"),
+        pep425.Tag("py33", "none", "any"),
+        pep425.Tag("py3", "none", "any"),
+        pep425.Tag("py32", "none", "any"),
+        pep425.Tag("py31", "none", "any"),
+        pep425.Tag("py30", "none", "any"),
+    ]
