@@ -9,6 +9,8 @@ import sys
 import sysconfig
 from typing import Any, Container, Iterable, List, Sequence, Tuple
 
+from . import _mac
+
 
 INTERPRETER_SHORT_NAMES = {
     "python": "py",  # Generic.
@@ -17,9 +19,6 @@ INTERPRETER_SHORT_NAMES = {
     "ironpython": "ip",
     "jython": "jy",
 }
-
-
-_32_BIT_INTERPRETER = sys.maxsize <= 2 ** 32
 
 
 # A dataclass would be better, but Python 2.7. :(
@@ -132,64 +131,6 @@ def _independent_tags(py_version, platforms=["any"]) -> Iterable[Tag]:
             yield Tag(version, "none", platform)
 
 
-def _mac_arch(arch, *, is_32bit=_32_BIT_INTERPRETER):
-    """Calculate the CPU architecture for the interpreter on macOS."""
-    if is_32bit:
-        if arch.startswith("ppc"):
-            return "ppc"
-        else:
-            return "i386"
-    else:
-        return arch
-
-
-def _mac_binary_formats(version, cpu_arch: str) -> Sequence[str]:
-    """Calculate the supported binary formats for the specified macOS version and architecture."""
-    formats = [cpu_arch]
-    if cpu_arch == "x86_64":
-        if version >= (10, 4):
-            formats.extend(["intel", "fat64", "fat32"])
-        else:
-            return []
-    elif cpu_arch == "i386":
-        if version >= (10, 4):
-            formats.extend(["intel", "fat32", "fat"])
-        else:
-            return []
-    elif cpu_arch == "ppc64":
-        # TODO: Need to care about 32-bit PPC for ppc64 through 10.2?
-        if version > (10, 5) or version < (10, 4):
-            return []
-        else:
-            formats.append("fat64")
-    elif cpu_arch == "ppc":
-        if version <= (10, 6):
-            formats.extend(["fat32", "fat"])
-        else:
-            return []
-
-    formats.append("universal")
-    return formats
-
-
-def _mac_platforms(version=None, arch=None) -> Sequence[str]:
-    """Calculate the platform tags for macOS."""
-    version_str, _, cpu_arch = platform.mac_ver()
-    if version is None:
-        version = tuple(map(int, version_str.split(".")[:2]))
-    if arch is None:
-        arch = _mac_arch(cpu_arch)
-    platforms: List[str] = []
-    for minor_version in range(version[1], -1, -1):
-        compat_version = version[0], minor_version
-        binary_formats = _mac_binary_formats(compat_version, cpu_arch)
-        for binary_format in binary_formats:
-            platforms.append(
-                f"macosx_{compat_version[0]}_{compat_version[1]}_{binary_format}"
-            )
-    return platforms
-
-
 def _windows_platforms() -> Sequence[str]:
     # XXX Is this function even necessary?
     raise NotImplementedError
@@ -224,7 +165,7 @@ def sys_tags() -> Iterable[Tag]:
     py_version = sys.version_info[:2]
     interpreter_name = _interpreter_name()
     if sys.platform == "darwin":
-        platforms = _mac_platforms()
+        platforms = _mac.platforms()
     # In Python 3.3 the "linux" platform went from having the major version to not,
     # e.g. "linux3" to just "linux".
     elif sys.platform.startswith("linux"):
