@@ -223,3 +223,16 @@ def test_cpython_tags():
         pep425.Tag("py31", "none", "any"),
         pep425.Tag("py30", "none", "any"),
     ]
+
+
+@cpython_only
+@mac_only
+def test_sys_tags():
+    abi = pep425._cpython_abi()
+    platforms = pep425._mac_platforms()
+    tags = list(pep425.sys_tags())
+    assert tags[0] == pep425.Tag(
+        f"cp{sys.version_info[0]}{sys.version_info[1]}", abi, platforms[0]
+    )
+    assert tags[-1] == pep425.Tag("py30", "none", "any")
+
