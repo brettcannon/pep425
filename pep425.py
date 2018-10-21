@@ -45,7 +45,7 @@ class Tag:
         return "-".join(self._tags)
 
     def __repr__(self) -> str:
-        return f"{self}@{id(self)}"
+        return f"<{self} @ {id(self)}>"
 
     @property
     def interpreter(self) -> str:

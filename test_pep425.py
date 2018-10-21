@@ -53,7 +53,7 @@ def test_Tag_str(example_tag):
 
 
 def test_Tag_repr(example_tag):
-    assert repr(example_tag) == f"py3-none-any@{id(example_tag)}"
+    assert repr(example_tag) == f"<py3-none-any @ {id(example_tag)}>"
 
 
 def test_Tag_attribute_access(example_tag):
