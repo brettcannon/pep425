@@ -263,7 +263,6 @@ def sys_tags() -> Iterable[Tag]:
         return _generic_tags(py_version, interpreter_name, platforms)
 
 
-# XXX test sys_tags()
 # XXX Implement tags for PyPy
 # XXX Test _generic_platforms()
 # XXX Implement _generic_tags()

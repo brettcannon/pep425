@@ -227,7 +227,7 @@ def test_cpython_tags():
 
 @cpython_only
 @mac_only
-def test_sys_tags():
+def test_sys_tags_on_mac_cpython():
     abi = pep425._cpython_abi()
     platforms = pep425._mac_platforms()
     tags = list(pep425.sys_tags())
