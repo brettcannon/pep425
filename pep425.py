@@ -119,7 +119,7 @@ def _pypy_tags(py_version, platforms):
     raise NotImplementedError
 
 
-def _generic_tags(py_version, interpreter_name, platforms):
+def _generic_tags(interpreter_name, py_version, platforms):
     interpreter_version = sysconfig.get_config_var("py_version_nodot")
     if not interpreter_version:
         interpreter_version = "".join(py_version)
@@ -258,7 +258,8 @@ def sys_tags():
     elif interpreter_name == "pp":
         return _pypy_tags(py_version, platforms)
     else:
-        return _generic_tags(py_version, interpreter_name, platforms)
+        return _generic_tags(interpreter_name, py_version, platforms)
+    # TODO: can we just blindly call _independent_tags() here?
 
 
 # XXX Implement tags for PyPy
