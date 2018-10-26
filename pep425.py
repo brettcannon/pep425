@@ -1,5 +1,4 @@
 """Provide support for PEP 425 compatibility tags triples."""
-from __future__ import annotations
 
 import distutils.util
 import os
@@ -7,7 +6,6 @@ import pathlib
 import platform
 import sys
 import sysconfig
-from typing import Any, Container, Iterable, List, Sequence, Tuple
 
 
 INTERPRETER_SHORT_NAMES = {
@@ -27,7 +25,7 @@ class Tag:
 
     """Representation of the interpreter/ABI/platform tag triple as specified by PEP 425."""
 
-    def __init__(self, interpreter: str, abi: str, platform: str) -> None:
+    def __init__(self, interpreter, abi, platform):
         """Initialize the instance attributes.
 
         All values are lowercased.
@@ -35,32 +33,32 @@ class Tag:
         """
         self._tags = interpreter.lower(), abi.lower(), platform.lower()
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other):
         return self._tags == other._tags
 
-    def __hash__(self) -> int:
+    def __hash__(self):
         return hash(self._tags)
 
-    def __str__(self) -> str:
+    def __str__(self):
         return "-".join(self._tags)
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f"<{self} @ {id(self)}>"
 
     @property
-    def interpreter(self) -> str:
+    def interpreter(self):
         return self._tags[0]
 
     @property
-    def abi(self) -> str:
+    def abi(self):
         return self._tags[1]
 
     @property
-    def platform(self) -> str:
+    def platform(self):
         return self._tags[2]
 
 
-def parse_tag(tag: str) -> Container[Tag]:
+def parse_tag(tag: str):
     """Parse the tag triple.
 
     The result can be more than one tag triple due to the possibility of
@@ -76,7 +74,7 @@ def parse_tag(tag: str) -> Container[Tag]:
     return frozenset(tags)
 
 
-def parse_wheel_tag(path: os.PathLike) -> Container[Tag]:
+def parse_wheel_tag(path):
     """Parse the path of a wheel file for its tag triple(s)."""
     name = pathlib.PurePath(path).stem
     parts = 3
@@ -87,7 +85,7 @@ def parse_wheel_tag(path: os.PathLike) -> Container[Tag]:
     return parse_tag(name[index + 1 :])
 
 
-def _cpython_abi() -> str:
+def _cpython_abi():
     """Calcuate the ABI for this CPython interpreter."""
     soabi = sysconfig.get_config_var("SOABI")
     if soabi:
@@ -98,7 +96,7 @@ def _cpython_abi() -> str:
         raise NotImplementedError
 
 
-def _cpython_tags(py_version, abi, platforms) -> Iterable[Tag]:
+def _cpython_tags(py_version, abi, platforms):
     platforms = list(platforms)  # Iterating multiple times, so make concrete.
     # TODO: Is using py_version_nodot for interpreter version critical?
     interpreter = f"cp{py_version[0]}{py_version[1]}"
@@ -112,7 +110,7 @@ def _cpython_tags(py_version, abi, platforms) -> Iterable[Tag]:
     yield from _independent_tags(interpreter, py_version, platforms)
 
 
-def _pypy_tags(py_version, platforms) -> Iterable[Tag]:
+def _pypy_tags(py_version, platforms):
     interpreter_version = (
         f"{py_version[0]}{sys.pypy_version_info.major}{sys.pypy_version_info.minor}"
     )
@@ -121,7 +119,7 @@ def _pypy_tags(py_version, platforms) -> Iterable[Tag]:
     raise NotImplementedError
 
 
-def _generic_tags(py_version, interpreter_name, platforms) -> Iterable[Tag]:
+def _generic_tags(py_version, interpreter_name, platforms):
     interpreter_version = sysconfig.get_config_var("py_version_nodot")
     if not interpreter_version:
         interpreter_version = "".join(py_version)
@@ -131,7 +129,7 @@ def _generic_tags(py_version, interpreter_name, platforms) -> Iterable[Tag]:
     raise NotImplementedError
 
 
-def _py_interpreter_range(py_version) -> Iterable[str]:
+def _py_interpreter_range(py_version):
     """Yield Python versions in descending order.
 
     After the latest version, the major-only version will be yielded, and then
@@ -144,7 +142,7 @@ def _py_interpreter_range(py_version) -> Iterable[str]:
         yield f"py{py_version[0]}{minor}"
 
 
-def _independent_tags(interpreter, py_version, platforms) -> Iterable[Tag]:
+def _independent_tags(interpreter, py_version, platforms):
     """Return the sequence of tags that are consistent across implementations."""
     for version in _py_interpreter_range(py_version):
         for platform in platforms:
@@ -165,7 +163,7 @@ def _mac_arch(arch, *, is_32bit=_32_BIT_INTERPRETER):
         return arch
 
 
-def _mac_binary_formats(version, cpu_arch: str) -> Sequence[str]:
+def _mac_binary_formats(version, cpu_arch: str):
     """Calculate the supported binary formats for the specified macOS version and architecture."""
     formats = [cpu_arch]
     if cpu_arch == "x86_64":
@@ -194,14 +192,14 @@ def _mac_binary_formats(version, cpu_arch: str) -> Sequence[str]:
     return formats
 
 
-def _mac_platforms(version=None, arch=None) -> Sequence[str]:
+def _mac_platforms(version=None, arch=None):
     """Calculate the platform tags for macOS."""
     version_str, _, cpu_arch = platform.mac_ver()
     if version is None:
         version = tuple(map(int, version_str.split(".")[:2]))
     if arch is None:
         arch = _mac_arch(cpu_arch)
-    platforms: List[str] = []
+    platforms = []
     for minor_version in range(version[1], -1, -1):
         compat_version = version[0], minor_version
         binary_formats = _mac_binary_formats(compat_version, cpu_arch)
@@ -212,31 +210,31 @@ def _mac_platforms(version=None, arch=None) -> Sequence[str]:
     return platforms
 
 
-def _windows_platforms() -> Sequence[str]:
+def _windows_platforms():
     # XXX Is this function even necessary?
     raise NotImplementedError
 
 
-def _linux_platforms() -> Sequence[str]:
+def _linux_platforms():
     # XXX 32-bit interpreter on 64-bit Linux
     # XXX manylinux
     raise NotImplementedError
 
 
-def _generic_platforms() -> Sequence[str]:
+def _generic_platforms():
     platform = distutils.util.get_platform()
     platform = platform.replace(".", "_").replace("-", "_")
     return [platform]
 
 
-def _interpreter_name() -> str:
+def _interpreter_name():
     """Return the name of the running interpreter."""
     # XXX: Darn you, Python 2.7! platform.python_implementation()?
     name = sys.implementation.name
     return INTERPRETER_SHORT_NAMES.get(name) or name
 
 
-def sys_tags() -> Iterable[Tag]:
+def sys_tags():
     """Return the sequence of tag triples for the running interpreter.
 
     The order of the sequence corresponds to priority order for the interpreter,
