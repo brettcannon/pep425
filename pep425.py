@@ -20,6 +20,11 @@ INTERPRETER_SHORT_NAMES = {
 _32_BIT_INTERPRETER = sys.maxsize <= 2 ** 32
 
 
+def _normalize_string(string):
+    """Convert 'string' to be compatible as a tag."""
+    return string.replace(".", "_").replace("-", "_")
+
+
 # A dataclass would be better, but Python 2.7. :(
 class Tag:
 
@@ -97,7 +102,7 @@ def _cpython_abi():
 
 
 def _cpython_tags(py_version, abi, platforms):
-    platforms = list(platforms)  # Iterating multiple times, so make concrete.
+    platforms = list(platforms)
     # TODO: Is using py_version_nodot for interpreter version critical?
     interpreter = f"cp{py_version[0]}{py_version[1]}"
     yield from (Tag(interpreter, abi, platform) for platform in platforms)
@@ -110,13 +115,20 @@ def _cpython_tags(py_version, abi, platforms):
     yield from _independent_tags(interpreter, py_version, platforms)
 
 
-def _pypy_tags(py_version, platforms):
+def __pypy_abi():
+    """Get the ABI version for this PyPy interpreter."""
+    return _normalize_string(sysconfig.get_config_var("SOABI"))
+    # TODO: Consider this _generic_abi()?
+
+
+def _pypy_tags(py_version, abi, platforms):
     interpreter_version = (
         f"{py_version[0]}{sys.pypy_version_info.major}{sys.pypy_version_info.minor}"
     )
     interpreter = f"pp{interpreter_version}"
-    # XXX
-    raise NotImplementedError
+    yield from (Tag(interpreter, tag, platform) for platform in platforms)
+    yield from (Tag(interpreter, "none", platform) for platform in platforms)
+    yield from _independent_tags(interpreter, py_version, platforms)
 
 
 def _generic_tags(interpreter_name, py_version, platforms):
@@ -125,8 +137,8 @@ def _generic_tags(interpreter_name, py_version, platforms):
         interpreter_version = "".join(py_version)
     interpreter = f"{interpreter_name}{interpreter_version}"
     # XXX ABI
-    # XXX
-    raise NotImplementedError
+    yield from _independent_tags(interpreter, py_version, platforms)
+    raise NotImplementedError  # XXX
 
 
 def _py_interpreter_range(py_version):
@@ -222,8 +234,7 @@ def _linux_platforms():
 
 
 def _generic_platforms():
-    platform = distutils.util.get_platform()
-    platform = platform.replace(".", "_").replace("-", "_")
+    platform = _normalize_string(distutils.util.get_platform())
     return [platform]
 
 
@@ -256,7 +267,8 @@ def sys_tags():
         abi = _cpython_abi()
         return _cpython_tags(py_version, abi, platforms)
     elif interpreter_name == "pp":
-        return _pypy_tags(py_version, platforms)
+        abi = _pypy_abi()
+        return _pypy_tags(py_version, abi, platforms)
     else:
         return _generic_tags(interpreter_name, py_version, platforms)
     # TODO: can we just blindly call _independent_tags() here?

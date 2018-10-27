@@ -15,6 +15,13 @@ def cpython_only(func):
     )(func)
 
 
+def pypy_only(func):
+    """Skip 'func' if not running under PyPy."""
+    return pytest.mark.skipif(
+        not hasattr(sys, "pypy_version_info"), reason="requires PyPy"
+    )(func)
+
+
 def mac_only(func):
     """Skip 'func' if not running on macOS."""
     return pytest.mark.skipif(sys.platform != "darwin", reason="requires macOS")(func)
@@ -236,3 +243,9 @@ def test_sys_tags_on_mac_cpython():
     )
     assert tags[-1] == pep425.Tag("py30", "none", "any")
 
+
+@pypy_only
+def test_pypy_abi():
+    abi = sysconfig.get_config_var("SOABI")
+    abi = abi.replace(".", "_").replace("-", "_")
+    assert abi == pep425.__pypy_abi()
