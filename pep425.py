@@ -275,9 +275,12 @@ def sys_tags():
     # TODO: can we just blindly call _independent_tags() here?
 
 
-# XXX Implement tags for PyPy
 # XXX Test _generic_platforms()
 # XXX Implement _generic_tags()
+# XXX Support Python 2
+# XXX Support pypy
+# XXX Support Linux
+# XXX Support Windows
 
 
 # XXX https://pypi.org/project/mysql-connector-python/#files
