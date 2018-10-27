@@ -20,11 +20,6 @@ INTERPRETER_SHORT_NAMES = {
 _32_BIT_INTERPRETER = sys.maxsize <= 2 ** 32
 
 
-def _normalize_string(string):
-    """Convert 'string' to be compatible as a tag."""
-    return string.replace(".", "_").replace("-", "_")
-
-
 # A dataclass would be better, but Python 2.7. :(
 class Tag:
 
@@ -90,6 +85,11 @@ def parse_wheel_tag(path):
     return parse_tag(name[index + 1 :])
 
 
+def _normalize_string(string):
+    """Convert 'string' to be compatible as a tag."""
+    return string.replace(".", "_").replace("-", "_")
+
+
 def _cpython_abi():
     """Calcuate the ABI for this CPython interpreter."""
     soabi = sysconfig.get_config_var("SOABI")
@@ -115,18 +115,19 @@ def _cpython_tags(py_version, abi, platforms):
     yield from _independent_tags(interpreter, py_version, platforms)
 
 
-def __pypy_abi():
+def _pypy_interpreter():
+    return f"pp{sys.version_info[0]}{sys.pypy_version_info.major}{sys.pypy_version_info.minor}"
+
+
+def _pypy_abi():
     """Get the ABI version for this PyPy interpreter."""
     return _normalize_string(sysconfig.get_config_var("SOABI"))
     # TODO: Consider this _generic_abi()?
 
 
 def _pypy_tags(py_version, abi, platforms):
-    interpreter_version = (
-        f"{py_version[0]}{sys.pypy_version_info.major}{sys.pypy_version_info.minor}"
-    )
-    interpreter = f"pp{interpreter_version}"
-    yield from (Tag(interpreter, tag, platform) for platform in platforms)
+    interpreter = _pypy_interpreter()
+    yield from (Tag(interpreter, abi, platform) for platform in platforms)
     yield from (Tag(interpreter, "none", platform) for platform in platforms)
     yield from _independent_tags(interpreter, py_version, platforms)
 
