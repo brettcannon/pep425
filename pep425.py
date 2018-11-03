@@ -122,7 +122,6 @@ def _pypy_interpreter():
 def _pypy_abi():
     """Get the ABI version for this PyPy interpreter."""
     return _normalize_string(sysconfig.get_config_var("SOABI"))
-    # TODO: Consider this _generic_abi()?
 
 
 def _pypy_tags(py_version, abi, platforms):
@@ -137,7 +136,7 @@ def _generic_tags(interpreter_name, py_version, platforms):
     if not interpreter_version:
         interpreter_version = "".join(py_version)
     interpreter = f"{interpreter_name}{interpreter_version}"
-    # XXX ABI
+    # XXX ABI; maybe _pypy_abi()?
     yield from _independent_tags(interpreter, py_version, platforms)
     raise NotImplementedError  # XXX
 
@@ -275,7 +274,6 @@ def sys_tags():
     # TODO: can we just blindly call _independent_tags() here?
 
 
-# XXX Test _generic_platforms()
 # XXX Implement _generic_tags()
 # XXX Support Python 2
 # XXX Support pypy

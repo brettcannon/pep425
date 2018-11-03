@@ -1,3 +1,4 @@
+import distutils.util
 import pathlib
 import platform
 import sys
@@ -288,3 +289,8 @@ def test_sys_tags_on_mac_pypy():
     tags = list(pep425.sys_tags())
     assert tags[0] == pep425.Tag(interpreter, abi, platforms[0])
     assert tags[-1] == pep425.Tag("py30", "none", "any")
+
+
+def test_generic_platform():
+    platform = distutils.util.get_platform().replace("-", "_").replace(".", "_")
+    assert pep425._generic_platforms() == [platform]
