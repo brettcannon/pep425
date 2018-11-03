@@ -287,11 +287,11 @@ def sys_tags():
         interpreter = _generic_interpreter(interpreter_name, py_version)
         abi = _generic_abi()
         return _generic_tags(interpreter, py_version, abi, platforms)
-    # TODO: can we just blindly call _independent_tags() here?
+    # TODO: we can call _independent_tags() here if we extract 'interpreter'.
 
 
 # XXX Use mocking to test sys_tags()
-# XXX Use mocking to test platform/interpreter-specific situations unconditionally
+# XXX Use mocking to test platform/interpreter-specific situations
 # XXX Support Python 2
 # XXX Support pypy
 # XXX Support Linux
