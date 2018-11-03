@@ -119,9 +119,13 @@ def _pypy_interpreter():
     return f"pp{sys.version_info[0]}{sys.pypy_version_info.major}{sys.pypy_version_info.minor}"
 
 
-def _pypy_abi():
-    """Get the ABI version for this PyPy interpreter."""
-    return _normalize_string(sysconfig.get_config_var("SOABI"))
+def _generic_abi():
+    """Get the ABI version for this interpreter."""
+    abi = sysconfig.get_config_var("SOABI")
+    if abi:
+        return _normalize_string(abi)
+    else:
+        return "none"
 
 
 def _pypy_tags(py_version, abi, platforms):
@@ -131,14 +135,11 @@ def _pypy_tags(py_version, abi, platforms):
     yield from _independent_tags(interpreter, py_version, platforms)
 
 
-def _generic_tags(interpreter_name, py_version, platforms):
-    interpreter_version = sysconfig.get_config_var("py_version_nodot")
-    if not interpreter_version:
-        interpreter_version = "".join(py_version)
-    interpreter = f"{interpreter_name}{interpreter_version}"
-    # XXX ABI; maybe _pypy_abi()?
+def _generic_tags(interpreter, py_version, abi, platforms):
+    yield from (Tag(interpreter, abi, platform) for platform in platforms)
+    if abi != "none":
+        yield from (Tag(interpreter, "none", platform) for platform in platforms)
     yield from _independent_tags(interpreter, py_version, platforms)
-    raise NotImplementedError  # XXX
 
 
 def _py_interpreter_range(py_version):
@@ -155,7 +156,13 @@ def _py_interpreter_range(py_version):
 
 
 def _independent_tags(interpreter, py_version, platforms):
-    """Return the sequence of tags that are consistent across implementations."""
+    """Return the sequence of tags that are consistent across implementations.
+
+    The tags consist of:
+    - py*-none-<platform>
+    - <interpreter>-none-any
+    - py*-none-any
+    """
     for version in _py_interpreter_range(py_version):
         for platform in platforms:
             yield Tag(version, "none", platform)
@@ -245,6 +252,13 @@ def _interpreter_name():
     return INTERPRETER_SHORT_NAMES.get(name) or name
 
 
+def _generic_interpreter(name, py_version):
+    version = sysconfig.get_config_var("py_version_nodot")
+    if not version:
+        version = "".join(py_version[:2])
+    return f"{name}{version}"
+
+
 def sys_tags():
     """Return the sequence of tag triples for the running interpreter.
 
@@ -267,14 +281,17 @@ def sys_tags():
         abi = _cpython_abi()
         return _cpython_tags(py_version, abi, platforms)
     elif interpreter_name == "pp":
-        abi = _pypy_abi()
+        abi = _generic_abi()
         return _pypy_tags(py_version, abi, platforms)
     else:
-        return _generic_tags(interpreter_name, py_version, platforms)
+        interpreter = _generic_interpreter(interpreter_name, py_version)
+        abi = _generic_abi()
+        return _generic_tags(interpreter, py_version, abi, platforms)
     # TODO: can we just blindly call _independent_tags() here?
 
 
-# XXX Implement _generic_tags()
+# XXX Use mocking to test sys_tags()
+# XXX Use mocking to test platform/interpreter-specific situations unconditionally
 # XXX Support Python 2
 # XXX Support pypy
 # XXX Support Linux

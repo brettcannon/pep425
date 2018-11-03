@@ -245,11 +245,13 @@ def test_sys_tags_on_mac_cpython():
     assert tags[-1] == pep425.Tag("py30", "none", "any")
 
 
-@pypy_only
-def test_pypy_abi():
+def test_generic_abi():
     abi = sysconfig.get_config_var("SOABI")
-    abi = abi.replace(".", "_").replace("-", "_")
-    assert abi == pep425._pypy_abi()
+    if abi:
+        abi = abi.replace(".", "_").replace("-", "_")
+    else:
+        abi = "none"
+    assert abi == pep425._generic_abi()
 
 
 @pypy_only
@@ -284,13 +286,48 @@ def test_pypy_tags():
 @mac_only
 def test_sys_tags_on_mac_pypy():
     interpreter = pep425._pypy_interpreter()
-    abi = pep425._pypy_abi()
+    abi = pep425._generic_abi()
     platforms = pep425._mac_platforms()
     tags = list(pep425.sys_tags())
     assert tags[0] == pep425.Tag(interpreter, abi, platforms[0])
     assert tags[-1] == pep425.Tag("py30", "none", "any")
 
 
+def test_generic_interpreter():
+    version = sysconfig.get_config_var("py_version_nodot")
+    if not version:
+        version = "".join(sys.version_info[:2])
+    assert f"sillywalk{version}" == pep425._generic_interpreter(
+        "sillywalk", sys.version_info[:2]
+    )
+
+
 def test_generic_platform():
     platform = distutils.util.get_platform().replace("-", "_").replace(".", "_")
     assert pep425._generic_platforms() == [platform]
+
+
+def test_generic_tags():
+    tags = list(pep425._generic_tags("sillywalk33", (3, 3), "abi", ["plat1", "plat2"]))
+    assert tags == [
+        pep425.Tag("sillywalk33", "abi", "plat1"),
+        pep425.Tag("sillywalk33", "abi", "plat2"),
+        pep425.Tag("sillywalk33", "none", "plat1"),
+        pep425.Tag("sillywalk33", "none", "plat2"),
+        pep425.Tag("py33", "none", "plat1"),
+        pep425.Tag("py33", "none", "plat2"),
+        pep425.Tag("py3", "none", "plat1"),
+        pep425.Tag("py3", "none", "plat2"),
+        pep425.Tag("py32", "none", "plat1"),
+        pep425.Tag("py32", "none", "plat2"),
+        pep425.Tag("py31", "none", "plat1"),
+        pep425.Tag("py31", "none", "plat2"),
+        pep425.Tag("py30", "none", "plat1"),
+        pep425.Tag("py30", "none", "plat2"),
+        pep425.Tag("sillywalk33", "none", "any"),
+        pep425.Tag("py33", "none", "any"),
+        pep425.Tag("py3", "none", "any"),
+        pep425.Tag("py32", "none", "any"),
+        pep425.Tag("py31", "none", "any"),
+        pep425.Tag("py30", "none", "any"),
+    ]
