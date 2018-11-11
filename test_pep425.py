@@ -3,6 +3,7 @@ import pathlib
 import platform
 import sys
 import sysconfig
+import types
 
 import pytest
 
@@ -25,7 +26,9 @@ def pypy_only(func):
 
 def mac_only(func):
     """Skip 'func' if not running on macOS."""
-    return pytest.mark.skipif(sys.platform != "darwin", reason="requires macOS")(func)
+    return pytest.mark.skipif(platform.system() != "Darwin", reason="requires macOS")(
+        func
+    )
 
 
 def arch_64_only(func):
@@ -116,9 +119,15 @@ def test_parse_wheel_tag_multi_interpreter(example_tag):
     assert given == expected
 
 
-@cpython_only
-def test__interpreter_name_cpython():
-    assert pep425._interpreter_name() == "cp"
+@pytest.mark.parametrize(
+    "name,expected",
+    [("cpython", "cp"), ("pypy", "pp"), ("jython", "jy"), ("ironpython", "ip")],
+)
+def test__interpreter_name_cpython(name, expected, monkeypatch):
+    if sys.implementation.name != name:
+        implementation = types.SimpleNamespace(name=name)
+        monkeypatch.setattr(sys, "implementation", implementation)
+    assert pep425._interpreter_name() == expected
 
 
 @pytest.mark.parametrize(
@@ -179,8 +188,9 @@ def test_mac_platforms():
     assert not pep425._mac_platforms((10, 0), "x86_64")
 
 
-@mac_only
-def test_macOS_version_detection():
+def test_macOS_version_detection(monkeypatch):
+    if platform.system() != "Darwin":
+        monkeypatch.setattr(platform, "mac_ver", ("10.14", ("", "", ""), "x86_64"))
     version = platform.mac_ver()[0].split(".")
     expected = f"macosx_{version[0]}_{version[1]}"
     platforms = pep425._mac_platforms(arch="x86_64")
