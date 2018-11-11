@@ -10,34 +10,6 @@ import pytest
 import pep425
 
 
-def cpython_only(func):
-    """Skip 'func' if not running under CPython."""
-    return pytest.mark.skipif(
-        sys.implementation.name != "cpython", reason="requires CPython"
-    )(func)
-
-
-def pypy_only(func):
-    """Skip 'func' if not running under PyPy."""
-    return pytest.mark.skipif(
-        not hasattr(sys, "pypy_version_info"), reason="requires PyPy"
-    )(func)
-
-
-def mac_only(func):
-    """Skip 'func' if not running on macOS."""
-    return pytest.mark.skipif(platform.system() != "Darwin", reason="requires macOS")(
-        func
-    )
-
-
-def arch_64_only(func):
-    """Skip 'func' if not running on a 64-bit interpreter."""
-    return pytest.mark.skipif(
-        sys.maxsize <= 2 ** 32, reason="requires a 64-bit interpreter"
-    )(func)
-
-
 @pytest.fixture
 def example_tag():
     return pep425.Tag("py3", "none", "any")
@@ -190,25 +162,27 @@ def test_mac_platforms():
 
 def test_macOS_version_detection(monkeypatch):
     if platform.system() != "Darwin":
-        monkeypatch.setattr(platform, "mac_ver", ("10.14", ("", "", ""), "x86_64"))
+        monkeypatch.setattr(
+            platform, "mac_ver", lambda: ("10.14", ("", "", ""), "x86_64")
+        )
     version = platform.mac_ver()[0].split(".")
     expected = f"macosx_{version[0]}_{version[1]}"
     platforms = pep425._mac_platforms(arch="x86_64")
     assert platforms[0].startswith(expected)
 
 
-@mac_only
-@arch_64_only
-def test_macOS_arch_detection():
-    arch = platform.mac_ver()[2]
-    assert pep425._mac_platforms((10, 17))[0].endswith(arch)
+@pytest.mark.parametrize("arch", ["x86_64", "i386"])
+def test_macOS_arch_detection(arch, monkeypatch):
+    if platform.system() != "Darwin" or platform.mac_ver()[2] != arch:
+        monkeypatch.setattr(platform, "mac_ver", lambda: ("10.14", ("", "", ""), arch))
+    assert pep425._mac_platforms((10, 14))[0].endswith(arch)
 
 
-@cpython_only
-@pytest.mark.skipif(
-    not sysconfig.get_config_var("SOABI"), reason="requires SOABI configuration info"
-)
-def test_cpython_abi():
+def test_cpython_abi(monkeypatch):
+    if sys.implementation.name != "cpython" or not sysconfig.get_config_var("SOABI"):
+        monkeypatch.setattr(
+            sysconfig, "get_config_var", lambda key: "'cpython-37m-darwin'"
+        )
     _, soabi, _ = sysconfig.get_config_var("SOABI").split("-")
     assert f"cp{soabi}" == pep425._cpython_abi()
 
@@ -243,9 +217,14 @@ def test_cpython_tags():
     ]
 
 
-@cpython_only
-@mac_only
-def test_sys_tags_on_mac_cpython():
+def test_sys_tags_on_mac_cpython(monkeypatch):
+    if sys.implementation.name != "cpython":
+        monkeypatch.setattr(
+            sys, "implementation", types.SimpleNamespace(name="cpython")
+        )
+        monkeypatch.setattr(pep425, "_cpython_abi", lambda: "cp33m")
+    if platform.system() != "Darwin":
+        monkeypatch.setattr(pep425, "_mac_platforms", lambda: ["macosx_10_5_x86_64"])
     abi = pep425._cpython_abi()
     platforms = pep425._mac_platforms()
     tags = list(pep425.sys_tags())
@@ -264,8 +243,10 @@ def test_generic_abi():
     assert abi == pep425._generic_abi()
 
 
-@pypy_only
-def test_pypy_tags():
+def test_pypy_tags(monkeypatch):
+    if sys.implementation.name != "pypy":
+        monkeypatch.setattr(sys, "implementation", types.SimpleNamespace(name="pypy"))
+        monkeypatch.setattr(pep425, "_pypy_interpreter", lambda: "pp360")
     interpreter = pep425._pypy_interpreter()
     tags = list(pep425._pypy_tags((3, 3), "pypy3_60", ["plat1", "plat2"]))
     assert tags == [
@@ -292,9 +273,12 @@ def test_pypy_tags():
     ]
 
 
-@pypy_only
-@mac_only
-def test_sys_tags_on_mac_pypy():
+def test_sys_tags_on_mac_pypy(monkeypatch):
+    if sys.implementation.name != "pypy":
+        monkeypatch.setattr(sys, "implementation", types.SimpleNamespace(name="pypy"))
+        monkeypatch.setattr(pep425, "_pypy_interpreter", lambda: "pp360")
+    if platform.system() != "Darwin":
+        monkeypatch.setattr(pep425, "_mac_platforms", lambda: ["macosx_10_5_x86_64"])
     interpreter = pep425._pypy_interpreter()
     abi = pep425._generic_abi()
     platforms = pep425._mac_platforms()
