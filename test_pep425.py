@@ -36,7 +36,9 @@ def test_Tag_str(example_tag):
 
 
 def test_Tag_repr(example_tag):
-    assert repr(example_tag) == f"<py3-none-any @ {id(example_tag)}>"
+    assert repr(example_tag) == "<py3-none-any @ {tag_id}>".format(
+        tag_id=id(example_tag)
+    )
 
 
 def test_Tag_attribute_access(example_tag):
@@ -166,7 +168,7 @@ def test_macOS_version_detection(monkeypatch):
             platform, "mac_ver", lambda: ("10.14", ("", "", ""), "x86_64")
         )
     version = platform.mac_ver()[0].split(".")
-    expected = f"macosx_{version[0]}_{version[1]}"
+    expected = "macosx_{major}_{minor}".format(major=version[0], minor=version[1])
     platforms = pep425._mac_platforms(arch="x86_64")
     assert platforms[0].startswith(expected)
 
@@ -184,7 +186,7 @@ def test_cpython_abi(monkeypatch):
             sysconfig, "get_config_var", lambda key: "'cpython-37m-darwin'"
         )
     _, soabi, _ = sysconfig.get_config_var("SOABI").split("-")
-    assert f"cp{soabi}" == pep425._cpython_abi()
+    assert "cp{soabi}".format(soabi=soabi) == pep425._cpython_abi()
 
 
 def test_independent_tags():
@@ -234,7 +236,9 @@ def test_sys_tags_on_mac_cpython(monkeypatch):
     platforms = pep425._mac_platforms()
     tags = list(pep425.sys_tags())
     assert tags[0] == pep425.Tag(
-        f"cp{sys.version_info[0]}{sys.version_info[1]}", abi, platforms[0]
+        "cp{major}{minor}".format(major=sys.version_info[0], minor=sys.version_info[1]),
+        abi,
+        platforms[0],
     )
     assert tags[-1] == pep425.Tag("py30", "none", "any")
 
@@ -280,7 +284,7 @@ def test_generic_interpreter():
     version = sysconfig.get_config_var("py_version_nodot")
     if not version:
         version = "".join(sys.version_info[:2])
-    assert f"sillywalk{version}" == pep425._generic_interpreter(
+    assert "sillywalk{version}".format(version=version) == pep425._generic_interpreter(
         "sillywalk", sys.version_info[:2]
     )
 

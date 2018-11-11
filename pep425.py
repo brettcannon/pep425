@@ -43,7 +43,7 @@ class Tag:
         return "-".join(self._tags)
 
     def __repr__(self):
-        return f"<{self} @ {id(self)}>"
+        return "<{self} @ {self_id}>".format(self=self, self_id=id(self))
 
     @property
     def interpreter(self):
@@ -92,7 +92,7 @@ def _normalize_string(string):
 
 def _cpython_interpreter(py_version):
     # TODO: Is using py_version_nodot for interpreter version critical?
-    return f"cp{py_version[0]}{py_version[1]}"
+    return "cp{major}{minor}".format(major=py_version[0], minor=py_version[1])
 
 
 def _cpython_abi():
@@ -100,7 +100,7 @@ def _cpython_abi():
     soabi = sysconfig.get_config_var("SOABI")
     if soabi:
         _, options, _ = soabi.split("-")
-        return f"cp{options}"
+        return "cp{options}".format(options=options)
     else:
         # XXX Python 2.7.
         raise NotImplementedError
@@ -113,11 +113,19 @@ def _cpython_tags(py_version, interpreter, abi, platforms):
     # PEP 384 was first implemented in Python 3.2.
     for minor_version in range(py_version[1] - 1, 1, -1):
         for platform in platforms:
-            yield Tag(f"cp{py_version[0]}{minor_version}", "abi3", platform)
+            yield Tag(
+                "cp{major}{minor}".format(major=py_version[0], minor=minor_version),
+                "abi3",
+                platform,
+            )
 
 
 def _pypy_interpreter():
-    return f"pp{sys.version_info[0]}{sys.pypy_version_info.major}{sys.pypy_version_info.minor}"
+    return "pp{py_major}{pypy_major}{pypy_minor}".format(
+        py_major=sys.version_info[0],
+        pypy_major=sys.pypy_version_info.major,
+        pypy_minor=sys.pypy_version_info.minor,
+    )
 
 
 def _generic_abi():
@@ -147,10 +155,10 @@ def _py_interpreter_range(py_version):
     all following versions up to 'end'.
 
     """
-    yield f"py{py_version[0]}{py_version[1]}"
-    yield f"py{py_version[0]}"
+    yield "py{major}{minor}".format(major=py_version[0], minor=py_version[1])
+    yield "py{major}".format(major=py_version[0])
     for minor in range(py_version[1] - 1, -1, -1):
-        yield f"py{py_version[0]}{minor}"
+        yield "py{major}{minor}".format(major=py_version[0], minor=minor)
 
 
 def _independent_tags(interpreter, py_version, platforms):
@@ -222,7 +230,11 @@ def _mac_platforms(version=None, arch=None):
         binary_formats = _mac_binary_formats(compat_version, cpu_arch)
         for binary_format in binary_formats:
             platforms.append(
-                f"macosx_{compat_version[0]}_{compat_version[1]}_{binary_format}"
+                "macosx_{major}_{minor}_{binary_format}".format(
+                    major=compat_version[0],
+                    minor=compat_version[1],
+                    binary_format=binary_format,
+                )
             )
     return platforms
 
@@ -254,7 +266,7 @@ def _generic_interpreter(name, py_version):
     version = sysconfig.get_config_var("py_version_nodot")
     if not version:
         version = "".join(py_version[:2])
-    return f"{name}{version}"
+    return "{name}{version}".format(name=name, version=version)
 
 
 def sys_tags():
