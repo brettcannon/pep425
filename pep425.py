@@ -288,9 +288,7 @@ def sys_tags():
     # TODO: we can call _independent_tags() here if we extract 'interpreter'.
 
 
-# XXX Use mocking to test sys_tags()
 # XXX decide whether to extract out call to _independent_tags()
-# XXX Use mocking to test platform/interpreter-specific situations
 # XXX Support Python 2
 # XXX Support pypy
 # XXX Support Linux
