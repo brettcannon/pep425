@@ -268,11 +268,9 @@ def sys_tags():
     """
     py_version = sys.version_info[:2]
     interpreter_name = _interpreter_name()
-    if sys.platform == "darwin":
+    if platform.system() == "Darwin":
         platforms = _mac_platforms()
-    # In Python 3.3 the "linux" platform went from having the major version to not,
-    # e.g. "linux3" to just "linux".
-    elif sys.platform.startswith("linux"):
+    elif platform.system == "Linux":
         platforms = _linux_platforms()
     else:
         platforms = _generic_platforms()
