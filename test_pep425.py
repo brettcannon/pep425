@@ -187,17 +187,8 @@ def test_cpython_abi(monkeypatch):
     assert f"cp{soabi}" == pep425._cpython_abi()
 
 
-def test_cpython_tags():
-    tags = list(pep425._cpython_tags((3, 3), "cp33m", ["plat1", "plat2"]))
-    assert tags == [
-        pep425.Tag("cp33", "cp33m", "plat1"),
-        pep425.Tag("cp33", "cp33m", "plat2"),
-        pep425.Tag("cp33", "abi3", "plat1"),
-        pep425.Tag("cp33", "abi3", "plat2"),
-        pep425.Tag("cp33", "none", "plat1"),
-        pep425.Tag("cp33", "none", "plat2"),
-        pep425.Tag("cp32", "abi3", "plat1"),
-        pep425.Tag("cp32", "abi3", "plat2"),
+def test_independent_tags():
+    assert list(pep425._independent_tags("cp33", (3, 3), ["plat1", "plat2"])) == [
         pep425.Tag("py33", "none", "plat1"),
         pep425.Tag("py33", "none", "plat2"),
         pep425.Tag("py3", "none", "plat1"),
@@ -214,6 +205,20 @@ def test_cpython_tags():
         pep425.Tag("py32", "none", "any"),
         pep425.Tag("py31", "none", "any"),
         pep425.Tag("py30", "none", "any"),
+    ]
+
+
+def test_cpython_tags():
+    tags = list(pep425._cpython_tags((3, 3), "cp33", "cp33m", ["plat1", "plat2"]))
+    assert tags == [
+        pep425.Tag("cp33", "cp33m", "plat1"),
+        pep425.Tag("cp33", "cp33m", "plat2"),
+        pep425.Tag("cp33", "abi3", "plat1"),
+        pep425.Tag("cp33", "abi3", "plat2"),
+        pep425.Tag("cp33", "none", "plat1"),
+        pep425.Tag("cp33", "none", "plat2"),
+        pep425.Tag("cp32", "abi3", "plat1"),
+        pep425.Tag("cp32", "abi3", "plat2"),
     ]
 
 
@@ -248,28 +253,12 @@ def test_pypy_tags(monkeypatch):
         monkeypatch.setattr(sys, "implementation", types.SimpleNamespace(name="pypy"))
         monkeypatch.setattr(pep425, "_pypy_interpreter", lambda: "pp360")
     interpreter = pep425._pypy_interpreter()
-    tags = list(pep425._pypy_tags((3, 3), "pypy3_60", ["plat1", "plat2"]))
+    tags = list(pep425._pypy_tags((3, 3), interpreter, "pypy3_60", ["plat1", "plat2"]))
     assert tags == [
         pep425.Tag(interpreter, "pypy3_60", "plat1"),
         pep425.Tag(interpreter, "pypy3_60", "plat2"),
         pep425.Tag(interpreter, "none", "plat1"),
         pep425.Tag(interpreter, "none", "plat2"),
-        pep425.Tag("py33", "none", "plat1"),
-        pep425.Tag("py33", "none", "plat2"),
-        pep425.Tag("py3", "none", "plat1"),
-        pep425.Tag("py3", "none", "plat2"),
-        pep425.Tag("py32", "none", "plat1"),
-        pep425.Tag("py32", "none", "plat2"),
-        pep425.Tag("py31", "none", "plat1"),
-        pep425.Tag("py31", "none", "plat2"),
-        pep425.Tag("py30", "none", "plat1"),
-        pep425.Tag("py30", "none", "plat2"),
-        pep425.Tag(interpreter, "none", "any"),
-        pep425.Tag("py33", "none", "any"),
-        pep425.Tag("py3", "none", "any"),
-        pep425.Tag("py32", "none", "any"),
-        pep425.Tag("py31", "none", "any"),
-        pep425.Tag("py30", "none", "any"),
     ]
 
 
@@ -308,20 +297,4 @@ def test_generic_tags():
         pep425.Tag("sillywalk33", "abi", "plat2"),
         pep425.Tag("sillywalk33", "none", "plat1"),
         pep425.Tag("sillywalk33", "none", "plat2"),
-        pep425.Tag("py33", "none", "plat1"),
-        pep425.Tag("py33", "none", "plat2"),
-        pep425.Tag("py3", "none", "plat1"),
-        pep425.Tag("py3", "none", "plat2"),
-        pep425.Tag("py32", "none", "plat1"),
-        pep425.Tag("py32", "none", "plat2"),
-        pep425.Tag("py31", "none", "plat1"),
-        pep425.Tag("py31", "none", "plat2"),
-        pep425.Tag("py30", "none", "plat1"),
-        pep425.Tag("py30", "none", "plat2"),
-        pep425.Tag("sillywalk33", "none", "any"),
-        pep425.Tag("py33", "none", "any"),
-        pep425.Tag("py3", "none", "any"),
-        pep425.Tag("py32", "none", "any"),
-        pep425.Tag("py31", "none", "any"),
-        pep425.Tag("py30", "none", "any"),
     ]
