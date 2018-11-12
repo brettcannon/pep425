@@ -316,7 +316,6 @@ def sys_tags():
         yield tag
 
 
-# XXX Support pypy
 # XXX Support Linux
 # XXX Support Windows
 
