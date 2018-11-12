@@ -257,10 +257,62 @@ def _windows_platforms():
     raise NotImplementedError
 
 
-def _linux_platforms():
-    # XXX 32-bit interpreter on 64-bit Linux
-    # XXX manylinux
-    raise NotImplementedError
+# From PEP 513.
+def _is_manylinux1_compatible(platform):
+    if platform not in ["linux_x86_64", "linux_i686"]:
+        return False
+
+    # Check for presence of _manylinux module.
+    try:
+        import _manylinux
+
+        return bool(_manylinux.manylinux1_compatible)
+    except (ImportError, AttributeError):
+        # Fall through to heuristic check below.
+        pass
+
+    # Check glibc version. CentOS 5 uses glibc 2.5.
+    return have_compatible_glibc(2, 5)
+
+
+# From PEP 513.
+def _have_compatible_glibc(major, minimum_minor):
+    import ctypes
+
+    process_namespace = ctypes.CDLL(None)
+    try:
+        gnu_get_libc_version = process_namespace.gnu_get_libc_version
+    except AttributeError:
+        # Symbol doesn't exist -> therefore, we are not linked to
+        # glibc.
+        return False
+
+    # Call gnu_get_libc_version, which returns a string like "2.5".
+    gnu_get_libc_version.restype = ctypes.c_char_p
+    version_str = gnu_get_libc_version()
+    # py2 / py3 compatibility:
+    if not isinstance(version_str, str):
+        version_str = version_str.decode("ascii")
+
+    # Parse string and check against requested version.
+    version = [int(piece) for piece in version_str.split(".")]
+    assert len(version) == 2
+    if major != version[0]:
+        return False
+    if minimum_minor > version[1]:
+        return False
+    return True
+
+
+def _linux_platforms(is_32bit=_32_BIT_INTERPRETER):
+    """Return the supported platforms on Linux."""
+    linux = _normalize_string(distutils.util.get_platform())
+    if linux == "linux_x86_64" and is_32bit:
+        linux = "linux_i686"
+    platforms = [linux]
+    if _is_manylinux1_compatible(linux):
+        platforms.append(linux.replace("linux", "manylinux1"))
+    return platforms
 
 
 def _generic_platforms():
@@ -316,8 +368,8 @@ def sys_tags():
         yield tag
 
 
-# XXX Support Linux
-# XXX Support Windows
+# XXX Test _linux_platforms()
+# XXX Test on Windows; should just work.
 
 
 # XXX https://pypi.org/project/mysql-connector-python/#files
