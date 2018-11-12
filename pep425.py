@@ -264,8 +264,7 @@ def _generic_platforms():
 
 def _interpreter_name():
     """Return the name of the running interpreter."""
-    # XXX: Darn you, Python 2.7! platform.python_implementation()?
-    name = sys.implementation.name
+    name = platform.python_implementation().lower()
     return INTERPRETER_SHORT_NAMES.get(name) or name
 
 

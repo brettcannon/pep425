@@ -104,12 +104,11 @@ def test_parse_wheel_tag_multi_interpreter(example_tag):
 
 @pytest.mark.parametrize(
     "name,expected",
-    [("cpython", "cp"), ("pypy", "pp"), ("jython", "jy"), ("ironpython", "ip")],
+    [("CPython", "cp"), ("PyPy", "pp"), ("Jython", "jy"), ("IronPython", "ip")],
 )
 def test__interpreter_name_cpython(name, expected, monkeypatch):
-    if sys.implementation.name != name:
-        implementation = types.SimpleNamespace(name=name)
-        monkeypatch.setattr(sys, "implementation", implementation)
+    if platform.python_implementation().lower() != name:
+        monkeypatch.setattr(platform, "python_implementation", lambda: name)
     assert pep425._interpreter_name() == expected
 
 
@@ -190,7 +189,9 @@ def test_macOS_arch_detection(arch, monkeypatch):
 
 
 def test_cpython_abi(monkeypatch):
-    if sys.implementation.name != "cpython" or not sysconfig.get_config_var("SOABI"):
+    if platform.python_implementation() != "CPython" or not sysconfig.get_config_var(
+        "SOABI"
+    ):
         monkeypatch.setattr(
             sysconfig, "get_config_var", lambda key: "'cpython-37m-darwin'"
         )
@@ -234,10 +235,8 @@ def test_cpython_tags():
 
 
 def test_sys_tags_on_mac_cpython(monkeypatch):
-    if sys.implementation.name != "cpython":
-        monkeypatch.setattr(
-            sys, "implementation", types.SimpleNamespace(name="cpython")
-        )
+    if platform.python_implementation() != "CPython":
+        monkeypatch.setattr(platform, "python_implementation", lambda: "CPython")
         monkeypatch.setattr(pep425, "_cpython_abi", lambda: "cp33m")
     if platform.system() != "Darwin":
         monkeypatch.setattr(pep425, "_mac_platforms", lambda: ["macosx_10_5_x86_64"])
@@ -262,8 +261,8 @@ def test_generic_abi():
 
 
 def test_pypy_tags(monkeypatch):
-    if sys.implementation.name != "pypy":
-        monkeypatch.setattr(sys, "implementation", types.SimpleNamespace(name="pypy"))
+    if platform.python_implementation() != "PyPy":
+        monkeypatch.setattr(platform, "python_implementation", lambda: "PyPy")
         monkeypatch.setattr(pep425, "_pypy_interpreter", lambda: "pp360")
     interpreter = pep425._pypy_interpreter()
     tags = list(pep425._pypy_tags((3, 3), interpreter, "pypy3_60", ["plat1", "plat2"]))
@@ -276,8 +275,8 @@ def test_pypy_tags(monkeypatch):
 
 
 def test_sys_tags_on_mac_pypy(monkeypatch):
-    if sys.implementation.name != "pypy":
-        monkeypatch.setattr(sys, "implementation", types.SimpleNamespace(name="pypy"))
+    if platform.python_implementation() != "PyPy":
+        monkeypatch.setattr(platform, "python_implementation", lambda: "PyPy")
         monkeypatch.setattr(pep425, "_pypy_interpreter", lambda: "pp360")
     if platform.system() != "Darwin":
         monkeypatch.setattr(pep425, "_mac_platforms", lambda: ["macosx_10_5_x86_64"])
