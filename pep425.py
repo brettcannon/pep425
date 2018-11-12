@@ -95,15 +95,21 @@ def _cpython_interpreter(py_version):
     return "cp{major}{minor}".format(major=py_version[0], minor=py_version[1])
 
 
-def _cpython_abi():
+def _cpython_abi(py_version):
     """Calcuate the ABI for this CPython interpreter."""
     soabi = sysconfig.get_config_var("SOABI")
     if soabi:
         _, options, _ = soabi.split("-")
-        return "cp{options}".format(options=options)
     else:
-        # XXX Python 2.7.
-        raise NotImplementedError
+        found_options = [str(py_version[0]), str(py_version[1])]
+        if sysconfig.get_config_var("Py_DEBUG"):
+            found_options.append("d")
+        if sysconfig.get_config_var("WITH_PYMALLOC"):
+            found_options.append("m")
+        if sysconfig.get_config_var("Py_UNICODE_SIZE") == 4:
+            found_options.append("u")
+        options = "".join(found_options)
+    return "cp{options}".format(options=options)
 
 
 def _cpython_tags(py_version, interpreter, abi, platforms):
@@ -293,7 +299,7 @@ def sys_tags():
 
     if interpreter_name == "cp":
         interpreter = _cpython_interpreter(py_version)
-        abi = _cpython_abi()
+        abi = _cpython_abi(py_version)
         for tag in _cpython_tags(py_version, interpreter, abi, platforms):
             yield tag
     elif interpreter_name == "pp":
@@ -310,7 +316,6 @@ def sys_tags():
         yield tag
 
 
-# XXX Support Python 2
 # XXX Support pypy
 # XXX Support Linux
 # XXX Support Windows

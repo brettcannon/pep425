@@ -89,7 +89,7 @@ def test_parse_wheel_tag_path(example_tag):
     path = os.path.join("some", "location", "gidgethub-3.0.0-py3-none-any.whl")
     given = pep425.parse_wheel_tag(path)
     assert given == {example_tag}
-    if pathlib:
+    if pathlib and sys.version_info[:2] >= (3, 6):
         given = pep425.parse_wheel_tag(
             pathlib.PurePath("some") / "location" / "gidgethub-3.0.0-py3-none-any.whl"
         )
@@ -188,7 +188,7 @@ def test_macOS_arch_detection(arch, monkeypatch):
     assert pep425._mac_platforms((10, 14))[0].endswith(arch)
 
 
-def test_cpython_abi(monkeypatch):
+def test_cpython_abi_py3(monkeypatch):
     if platform.python_implementation() != "CPython" or not sysconfig.get_config_var(
         "SOABI"
     ):
@@ -196,7 +196,36 @@ def test_cpython_abi(monkeypatch):
             sysconfig, "get_config_var", lambda key: "'cpython-37m-darwin'"
         )
     _, soabi, _ = sysconfig.get_config_var("SOABI").split("-")
-    assert "cp{soabi}".format(soabi=soabi) == pep425._cpython_abi()
+    assert "cp{soabi}".format(soabi=soabi) == pep425._cpython_abi(sys.version_info[:2])
+
+
+@pytest.mark.parametrize(
+    "debug,pymalloc,unicode_width",
+    [
+        (False, False, 2),
+        (True, False, 2),
+        (False, True, 2),
+        (False, False, 4),
+        (True, True, 2),
+        (False, True, 4),
+        (True, True, 4),
+    ],
+)
+def test_cpython_abi_py2(debug, pymalloc, unicode_width, monkeypatch):
+    if platform.python_implementation() != "CPython" or sysconfig.get_config_var(
+        "SOABI"
+    ):
+        if debug != sysconfig.get_config_var("Py_DEBUG") or pymalloc != sysconfig.get_config_var("WITH_PYMALLOC") or sysconfig.get_config_var("Py_UNICODE_SIZE") != unicode_width:
+            config_vars = {"SOABI": None, "Py_DEBUG": int(debug), "WITH_PYMALLOC": int(pymalloc), "Py_UNICODE_SIZE": unicode_width}
+            monkeypatch.setattr(sysconfig, "get_config_var", config_vars.__getitem__)
+        options = ""
+        if debug:
+            options += "d"
+        if pymalloc:
+            options += "m"
+        if unicode_width == 4:
+            options += "u"
+        assert "cp33{}".format(options) == pep425._cpython_abi((3, 3))
 
 
 def test_independent_tags():
@@ -237,10 +266,10 @@ def test_cpython_tags():
 def test_sys_tags_on_mac_cpython(monkeypatch):
     if platform.python_implementation() != "CPython":
         monkeypatch.setattr(platform, "python_implementation", lambda: "CPython")
-        monkeypatch.setattr(pep425, "_cpython_abi", lambda: "cp33m")
+        monkeypatch.setattr(pep425, "_cpython_abi", lambda py_version: "cp33m")
     if platform.system() != "Darwin":
         monkeypatch.setattr(pep425, "_mac_platforms", lambda: ["macosx_10_5_x86_64"])
-    abi = pep425._cpython_abi()
+    abi = pep425._cpython_abi(sys.version_info[:2])
     platforms = pep425._mac_platforms()
     tags = list(pep425.sys_tags())
     assert tags[0] == pep425.Tag(
@@ -248,7 +277,7 @@ def test_sys_tags_on_mac_cpython(monkeypatch):
         abi,
         platforms[0],
     )
-    assert tags[-1] == pep425.Tag("py30", "none", "any")
+    assert tags[-1] == pep425.Tag("py{}0".format(sys.version_info[0]), "none", "any")
 
 
 def test_generic_abi():
@@ -285,7 +314,7 @@ def test_sys_tags_on_mac_pypy(monkeypatch):
     platforms = pep425._mac_platforms()
     tags = list(pep425.sys_tags())
     assert tags[0] == pep425.Tag(interpreter, abi, platforms[0])
-    assert tags[-1] == pep425.Tag("py30", "none", "any")
+    assert tags[-1] == pep425.Tag("py{}0".format(sys.version_info[0]), "none", "any")
 
 
 def test_generic_interpreter():
