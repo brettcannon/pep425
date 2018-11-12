@@ -58,7 +58,7 @@ class Tag:
         return self._tags[2]
 
 
-def parse_tag(tag: str):
+def parse_tag(tag):
     """Parse the tag triple.
 
     The result can be more than one tag triple due to the possibility of
@@ -107,9 +107,12 @@ def _cpython_abi():
 
 
 def _cpython_tags(py_version, interpreter, abi, platforms):
-    yield from (Tag(interpreter, abi, platform) for platform in platforms)
-    yield from (Tag(interpreter, "abi3", platform) for platform in platforms)
-    yield from (Tag(interpreter, "none", platform) for platform in platforms)
+    for tag in (Tag(interpreter, abi, platform) for platform in platforms):
+        yield tag
+    for tag in (Tag(interpreter, "abi3", platform) for platform in platforms):
+        yield tag
+    for tag in (Tag(interpreter, "none", platform) for platform in platforms):
+        yield tag
     # PEP 384 was first implemented in Python 3.2.
     for minor_version in range(py_version[1] - 1, 1, -1):
         for platform in platforms:
@@ -138,14 +141,18 @@ def _generic_abi():
 
 
 def _pypy_tags(py_version, interpreter, abi, platforms):
-    yield from (Tag(interpreter, abi, platform) for platform in platforms)
-    yield from (Tag(interpreter, "none", platform) for platform in platforms)
+    for tag in (Tag(interpreter, abi, platform) for platform in platforms):
+        yield tag
+    for tag in (Tag(interpreter, "none", platform) for platform in platforms):
+        yield tag
 
 
 def _generic_tags(interpreter, py_version, abi, platforms):
-    yield from (Tag(interpreter, abi, platform) for platform in platforms)
+    for tag in (Tag(interpreter, abi, platform) for platform in platforms):
+        yield tag
     if abi != "none":
-        yield from (Tag(interpreter, "none", platform) for platform in platforms)
+        for tag in (Tag(interpreter, "none", platform) for platform in platforms):
+            yield tag
 
 
 def _py_interpreter_range(py_version):
@@ -177,7 +184,7 @@ def _independent_tags(interpreter, py_version, platforms):
         yield Tag(version, "none", "any")
 
 
-def _mac_arch(arch, *, is_32bit=_32_BIT_INTERPRETER):
+def _mac_arch(arch, is_32bit=_32_BIT_INTERPRETER):
     """Calculate the CPU architecture for the interpreter on macOS."""
     if is_32bit:
         if arch.startswith("ppc"):
@@ -188,7 +195,7 @@ def _mac_arch(arch, *, is_32bit=_32_BIT_INTERPRETER):
         return arch
 
 
-def _mac_binary_formats(version, cpu_arch: str):
+def _mac_binary_formats(version, cpu_arch):
     """Calculate the supported binary formats for the specified macOS version and architecture."""
     formats = [cpu_arch]
     if cpu_arch == "x86_64":
@@ -288,16 +295,20 @@ def sys_tags():
     if interpreter_name == "cp":
         interpreter = _cpython_interpreter(py_version)
         abi = _cpython_abi()
-        yield from _cpython_tags(py_version, interpreter, abi, platforms)
+        for tag in _cpython_tags(py_version, interpreter, abi, platforms):
+            yield tag
     elif interpreter_name == "pp":
         interpreter = _pypy_interpreter()
         abi = _generic_abi()
-        yield from _pypy_tags(py_version, interpreter, abi, platforms)
+        for tag in _pypy_tags(py_version, interpreter, abi, platforms):
+            yield tag
     else:
         interpreter = _generic_interpreter(interpreter_name, py_version)
         abi = _generic_abi()
-        yield from _generic_tags(interpreter, py_version, abi, platforms)
-    yield from _independent_tags(interpreter, py_version, platforms)
+        for tag in _generic_tags(interpreter, py_version, abi, platforms):
+            yield tag
+    for tag in _independent_tags(interpreter, py_version, platforms):
+        yield tag
 
 
 # XXX Support Python 2
