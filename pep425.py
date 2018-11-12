@@ -2,7 +2,7 @@
 
 import distutils.util
 import os
-import pathlib
+import os.path
 import platform
 import sys
 import sysconfig
@@ -76,7 +76,7 @@ def parse_tag(tag: str):
 
 def parse_wheel_tag(path):
     """Parse the path of a wheel file for its tag triple(s)."""
-    name = pathlib.PurePath(path).stem
+    name = os.path.splitext(path)[0]
     parts = 3
     index = len(name)
     while parts:

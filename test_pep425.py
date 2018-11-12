@@ -1,5 +1,10 @@
 import distutils.util
-import pathlib
+import os.path
+
+try:
+    import pathlib
+except ImportError:
+    pathlib = None
 import platform
 import sys
 import sysconfig
@@ -81,10 +86,14 @@ def test_parse_wheel_tag_simple(example_tag):
 
 
 def test_parse_wheel_tag_path(example_tag):
-    given = pep425.parse_wheel_tag(
-        pathlib.PurePath("some") / "location" / "gidgethub-3.0.0-py3-none-any.whl"
-    )
+    path = os.path.join("some", "location", "gidgethub-3.0.0-py3-none-any.whl")
+    given = pep425.parse_wheel_tag(path)
     assert given == {example_tag}
+    if pathlib:
+        given = pep425.parse_wheel_tag(
+            pathlib.PurePath("some") / "location" / "gidgethub-3.0.0-py3-none-any.whl"
+        )
+        assert given == {example_tag}
 
 
 def test_parse_wheel_tag_multi_interpreter(example_tag):
