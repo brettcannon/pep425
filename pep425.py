@@ -96,7 +96,7 @@ def _cpython_interpreter(py_version):
 
 
 def _cpython_abi(py_version):
-    """Calcuate the ABI for this CPython interpreter."""
+    """Calculate the ABI for this CPython interpreter."""
     soabi = sysconfig.get_config_var("SOABI")
     if soabi:
         _, options, _ = soabi.split("-")
@@ -344,7 +344,7 @@ def sys_tags():
     interpreter_name = _interpreter_name()
     if platform.system() == "Darwin":
         platforms = _mac_platforms()
-    elif platform.system == "Linux":
+    elif platform.system() == "Linux":
         platforms = _linux_platforms()
     else:
         platforms = _generic_platforms()
