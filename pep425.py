@@ -369,6 +369,9 @@ def sys_tags():
 
 
 # XXX Test _linux_platforms()
+# XXX Add manylinux2010 support:
+#  - code: https://www.python.org/dev/peps/pep-0571/#platform-detection-for-installers
+#  - manylinux1 compatibility (i.e. upper-bound, so can short-circuit): https://www.python.org/dev/peps/pep-0571/#backwards-compatibility-with-manylinux1-wheels
 # XXX Test on Windows; should just work.
 
 
