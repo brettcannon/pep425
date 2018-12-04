@@ -268,6 +268,7 @@ def test_sys_tags_on_mac_cpython(monkeypatch):
         monkeypatch.setattr(platform, "python_implementation", lambda: "CPython")
         monkeypatch.setattr(pep425, "_cpython_abi", lambda py_version: "cp33m")
     if platform.system() != "Darwin":
+        monkeypatch.setattr(platform, "system", lambda: "Darwin")
         monkeypatch.setattr(pep425, "_mac_platforms", lambda: ["macosx_10_5_x86_64"])
     abi = pep425._cpython_abi(sys.version_info[:2])
     platforms = pep425._mac_platforms()
@@ -308,6 +309,7 @@ def test_sys_tags_on_mac_pypy(monkeypatch):
         monkeypatch.setattr(platform, "python_implementation", lambda: "PyPy")
         monkeypatch.setattr(pep425, "_pypy_interpreter", lambda: "pp360")
     if platform.system() != "Darwin":
+        monkeypatch.setattr(platform, "system", lambda: "Darwin")
         monkeypatch.setattr(pep425, "_mac_platforms", lambda: ["macosx_10_5_x86_64"])
     interpreter = pep425._pypy_interpreter()
     abi = pep425._generic_abi()
