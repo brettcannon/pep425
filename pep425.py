@@ -99,7 +99,7 @@ def _cpython_abi(py_version):
     """Calcuate the ABI for this CPython interpreter."""
     soabi = sysconfig.get_config_var("SOABI")
     if soabi:
-        _, options, _ = soabi.split("-")
+        _, options, _ = soabi.split("-", 2)
     else:
         found_options = [str(py_version[0]), str(py_version[1])]
         if sysconfig.get_config_var("Py_DEBUG"):
@@ -252,28 +252,18 @@ def _mac_platforms(version=None, arch=None):
             )
     return platforms
 
-
-def _windows_platforms():
-    # XXX Is this function even necessary?
-    raise NotImplementedError
-
-
 # From PEP 513.
-def _is_manylinux1_compatible(platform):
-    if platform not in ["linux_x86_64", "linux_i686"]:
-        return False
-
+def _is_manylinux_compatible(name, glibc_version):
     # Check for presence of _manylinux module.
     try:
         import _manylinux
 
-        return bool(_manylinux.manylinux1_compatible)
+        return bool(getattr(_manylinux, name + "_compatible"))
     except (ImportError, AttributeError):
         # Fall through to heuristic check below.
         pass
 
-    # Check glibc version. CentOS 5 uses glibc 2.5.
-    return have_compatible_glibc(2, 5)
+    return _have_compatible_glibc(*glibc_version)
 
 
 # From PEP 513.
@@ -310,9 +300,19 @@ def _linux_platforms(is_32bit=_32_BIT_INTERPRETER):
     linux = _normalize_string(distutils.util.get_platform())
     if linux == "linux_x86_64" and is_32bit:
         linux = "linux_i686"
-    platforms = [linux]
-    if _is_manylinux1_compatible(linux):
-        platforms.append(linux.replace("linux", "manylinux1"))
+    # manylinux1: CentOS 5 w/ glibc 2.5.
+    # manylinux2010: CentOS 6 w/ glibc 2.12.
+    manylinux_support = ("manylinux2010", (2, 12)), ("manylinux1", (2, 5))
+    manylinux_support_iter = iter(manylinux_support)
+    for name, glibc_version in manylinux_support_iter:
+        if _is_manylinux_compatible(name, glibc_version):
+            platforms = [linux.replace("linux", "manylinux1")]
+            break
+    else:
+        platforms = []
+    # Support for a later manylinux implies support for an earlier version.
+    platforms += [linux.replace("linux", name) for name, _ in manylinux_support_iter]
+    platforms.append(linux)
     return platforms
 
 
@@ -372,7 +372,7 @@ def sys_tags():
 
 # XXX Test _linux_platforms()
 # XXX Add manylinux2010 support:
-#  - code: https://www.python.org/dev/peps/pep-0571/#platform-detection-for-installers
+#  - code (supports up to glibc 2.12 for CentOS 6): https://www.python.org/dev/peps/pep-0571/#platform-detection-for-installers
 #  - manylinux1 compatibility (i.e. upper-bound, so can short-circuit): https://www.python.org/dev/peps/pep-0571/#backwards-compatibility-with-manylinux1-wheels
 
 

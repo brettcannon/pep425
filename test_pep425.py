@@ -195,7 +195,7 @@ def test_cpython_abi_py3(monkeypatch):
         monkeypatch.setattr(
             sysconfig, "get_config_var", lambda key: "'cpython-37m-darwin'"
         )
-    _, soabi, _ = sysconfig.get_config_var("SOABI").split("-")
+    _, soabi, _ = sysconfig.get_config_var("SOABI").split("-", 2)
     assert "cp{soabi}".format(soabi=soabi) == pep425._cpython_abi(sys.version_info[:2])
 
 
@@ -359,3 +359,32 @@ def test_sys_tags_on_windows_cpython(monkeypatch):
         platforms[0],
     )
     assert tags[-1] == pep425.Tag("py{}0".format(sys.version_info[0]), "none", "any")
+
+
+def test_is_manylinux_compatible_module_support(monkeypatch):
+    monkeypatch.setattr(pep425, "_have_compatible_glibc", lambda *args: False)
+    module_name = "_manylinux"
+    module = types.ModuleType(module_name)
+    module.manylinux1_compatible = True
+    monkeypatch.setitem(sys.modules, module_name, module)
+    assert pep425._is_manylinux_compatible("manylinux1", (2, 5))
+    module.manylinux1_compatible = False
+    assert not pep425._is_manylinux_compatible("manylinux1", (2, 5))
+    del module.manylinux1_compatible
+    assert not pep425._is_manylinux_compatible("manylinux1", (2, 5))
+    monkeypatch.setitem(sys.modules, module_name, None)
+    assert not pep425._is_manylinux_compatible("manylinux1", (2, 5))
+
+
+def test_is_manylinux_compatible_glibc_support(monkeypatch):
+    monkeypatch.setitem(sys.modules, "_manylinux", None)
+    monkeypatch.setattr(pep425, "_have_compatible_glibc", lambda major, minor: (major, minor) <= (2, 5))
+    assert pep425._have_compatible_glibc(2, 0)
+    assert pep425._have_compatible_glibc(2, 5)
+    assert not pep425._have_compatible_glibc(2, 10)
+
+
+@pytest.mark.skipif(platform.system() != "Linux", reason="requires Linux/glibc")
+def test_have_compatible_glibc():
+    # Assuming no one is running this test with a version of glibc released in 1997.
+    assert pep425._have_compatible_glibc(2, 0)
