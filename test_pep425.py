@@ -388,3 +388,35 @@ def test_is_manylinux_compatible_glibc_support(monkeypatch):
 def test_have_compatible_glibc():
     # Assuming no one is running this test with a version of glibc released in 1997.
     assert pep425._have_compatible_glibc(2, 0)
+
+
+def test_linux_platforms_64bit_on_64bit(monkeypatch):
+    if platform.system() != "Linux" or distutils.util.get_platform().endswith("_x86_64"):
+        monkeypatch.setattr(distutils.util, "get_platform", lambda: "linux_x86_64")
+        monkeypatch.setattr(pep425, "_is_manylinux_compatbible", lambda *args: False)
+    linux_platform = pep425._linux_platforms(is_32bit=False)[-1]
+    assert linux_platform == "linux_x86_64"
+
+
+def test_linux_platforms_32bit_linux_on_64bit_OS():
+    if platform.system() != "Linux" or distutils.util.get_platform().endswith("_i686"):
+        monkeypatch.setattr(distutils.util, "get_platform", lambda: "linux_i686")
+        monkeypatch.setattr(pep425, "_is_manylinux_compatbible", lambda *args: False)
+    linux_platform = pep425._linux_platforms(is_32bit=True)[-1]
+    assert linux_platform == "linux_i686"
+
+
+def test_linux_platforms_manylinux1(monkeypatch):
+    monkeypatch.setattr(pep425, "_is_manylinux_compatible", lambda name, _: name == "manylinux1")
+    if platform.system() != "Linux":
+        monkeypatch.setattr(distutils.util, "get_platform", lambda: "linux_x86_64")
+    platforms = pep425._linux_platforms(is_32bit=False)
+    assert platforms == ["manylinux1_x86_64", "linux_x86_64"]
+
+
+def test_linux_platforms_manylinux2010(monkeypatch):
+    monkeypatch.setattr(pep425, "_is_manylinux_compatible", lambda name, _: name == "manylinux2010")
+    if platform.system() != "Linux":
+        monkeypatch.setattr(distutils.util, "get_platform", lambda: "linux_x86_64")
+    platforms = pep425._linux_platforms(is_32bit=False)
+    assert platforms == ["manylinux2010_x86_64", "manylinux1_x86_64", "linux_x86_64"]

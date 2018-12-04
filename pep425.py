@@ -306,7 +306,7 @@ def _linux_platforms(is_32bit=_32_BIT_INTERPRETER):
     manylinux_support_iter = iter(manylinux_support)
     for name, glibc_version in manylinux_support_iter:
         if _is_manylinux_compatible(name, glibc_version):
-            platforms = [linux.replace("linux", "manylinux1")]
+            platforms = [linux.replace("linux", name)]
             break
     else:
         platforms = []
