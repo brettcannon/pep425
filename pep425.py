@@ -240,7 +240,7 @@ def _mac_platforms(version=None, arch=None):
     platforms = []
     for minor_version in range(version[1], -1, -1):
         compat_version = version[0], minor_version
-        binary_formats = _mac_binary_formats(compat_version, cpu_arch)
+        binary_formats = _mac_binary_formats(compat_version, arch)
         for binary_format in binary_formats:
             platforms.append(
                 "macosx_{major}_{minor}_{binary_format}".format(
@@ -344,7 +344,7 @@ def sys_tags():
     interpreter_name = _interpreter_name()
     if platform.system() == "Darwin":
         platforms = _mac_platforms()
-    elif platform.system == "Linux":
+    elif platform.system() == "Linux":
         platforms = _linux_platforms()
     else:
         platforms = _generic_platforms()
