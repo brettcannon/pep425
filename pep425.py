@@ -115,6 +115,7 @@ def _cpython_abi(py_version):
 def _cpython_tags(py_version, interpreter, abi, platforms):
     for tag in (Tag(interpreter, abi, platform) for platform in platforms):
         yield tag
+    # TODO: Make sure doing this on Windows isn't horrible.
     for tag in (Tag(interpreter, "abi3", platform) for platform in platforms):
         yield tag
     for tag in (Tag(interpreter, "none", platform) for platform in platforms):
@@ -347,6 +348,7 @@ def sys_tags():
     elif platform.system() == "Linux":
         platforms = _linux_platforms()
     else:
+        # TODO: Does Windows care if running under 32-bit Python on 64-bit OS?
         platforms = _generic_platforms()
 
     if interpreter_name == "cp":
@@ -372,7 +374,6 @@ def sys_tags():
 # XXX Add manylinux2010 support:
 #  - code: https://www.python.org/dev/peps/pep-0571/#platform-detection-for-installers
 #  - manylinux1 compatibility (i.e. upper-bound, so can short-circuit): https://www.python.org/dev/peps/pep-0571/#backwards-compatibility-with-manylinux1-wheels
-# XXX Test on Windows; should just work.
 
 
 # XXX https://pypi.org/project/mysql-connector-python/#files

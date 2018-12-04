@@ -328,7 +328,7 @@ def test_generic_interpreter():
     )
 
 
-def test_generic_platform():
+def test_generic_platforms():
     platform = distutils.util.get_platform().replace("-", "_").replace(".", "_")
     assert pep425._generic_platforms() == [platform]
 
@@ -341,3 +341,21 @@ def test_generic_tags():
         pep425.Tag("sillywalk33", "none", "plat1"),
         pep425.Tag("sillywalk33", "none", "plat2"),
     ]
+
+
+def test_sys_tags_on_windows_cpython(monkeypatch):
+    if platform.python_implementation() != "CPython":
+        monkeypatch.setattr(platform, "python_implementation", lambda: "CPython")
+        monkeypatch.setattr(pep425, "_cpython_abi", lambda py_version: "cp33m")
+    if platform.system() != "Windows":
+        monkeypatch.setattr(platform, "system", lambda: "Windows")
+        monkeypatch.setattr(pep425, "_generic_platforms", lambda: ["win_amd64"])
+    abi = pep425._cpython_abi(sys.version_info[:2])
+    platforms = pep425._generic_platforms()
+    tags = list(pep425.sys_tags())
+    assert tags[0] == pep425.Tag(
+        "cp{major}{minor}".format(major=sys.version_info[0], minor=sys.version_info[1]),
+        abi,
+        platforms[0],
+    )
+    assert tags[-1] == pep425.Tag("py{}0".format(sys.version_info[0]), "none", "any")
