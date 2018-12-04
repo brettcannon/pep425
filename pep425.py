@@ -368,14 +368,3 @@ def sys_tags():
             yield tag
     for tag in _independent_tags(interpreter, py_version, platforms):
         yield tag
-
-
-# XXX Test _linux_platforms()
-# XXX Add manylinux2010 support:
-#  - code (supports up to glibc 2.12 for CentOS 6): https://www.python.org/dev/peps/pep-0571/#platform-detection-for-installers
-#  - manylinux1 compatibility (i.e. upper-bound, so can short-circuit): https://www.python.org/dev/peps/pep-0571/#backwards-compatibility-with-manylinux1-wheels
-
-
-# XXX https://pypi.org/project/mysql-connector-python/#files
-# XXX https://pypi.org/project/pip/#files
-# XXX https://pypi.org/project/numpy/#files

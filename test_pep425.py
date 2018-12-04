@@ -420,3 +420,21 @@ def test_linux_platforms_manylinux2010(monkeypatch):
         monkeypatch.setattr(distutils.util, "get_platform", lambda: "linux_x86_64")
     platforms = pep425._linux_platforms(is_32bit=False)
     assert platforms == ["manylinux2010_x86_64", "manylinux1_x86_64", "linux_x86_64"]
+
+
+def test_sys_tags_linux_cpython(monkeypatch):
+    if platform.python_implementation() != "CPython":
+        monkeypatch.setattr(platform, "python_implementation", lambda: "CPython")
+        monkeypatch.setattr(pep425, "_cpython_abi", lambda py_version: "cp33m")
+    if platform.system() != "Linux":
+        monkeypatch.setattr(platform, "system", lambda: "Linux")
+        monkeypatch.setattr(pep425, "_linux_platforms", lambda: ["linux_x86_64"])
+    abi = pep425._cpython_abi(sys.version_info[:2])
+    platforms = pep425._linux_platforms()
+    tags = list(pep425.sys_tags())
+    assert tags[0] == pep425.Tag(
+        "cp{major}{minor}".format(major=sys.version_info[0], minor=sys.version_info[1]),
+        abi,
+        platforms[0],
+    )
+    assert tags[-1] == pep425.Tag("py{}0".format(sys.version_info[0]), "none", "any")
